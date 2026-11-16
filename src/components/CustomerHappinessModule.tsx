@@ -22,10 +22,8 @@ import {
   Package,
   Truck,
   PackageCheck,
-  Lightbulb,
   Layers,
   BarChart3,
-  Sparkles,
   ShoppingBag,
   CheckCircle2,
   Clock,
@@ -226,10 +224,11 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-2xs font-bold tracking-widest text-[#127a60] uppercase">
-                CUSTOMER HAPPINESS &amp; ACQUISITION
+                CUSTOMER HAPPINESS &amp; RETENTION
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-[#e6f4ee] text-[#127a60] border border-emerald-200">
-                <Sparkles className="w-3 h-3" /> Live Operations
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-3xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                Operasional Aktif
               </span>
             </div>
             <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5">
@@ -242,8 +241,8 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
 
           {/* Period Badge & Quick Action */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#e6f4ee] text-[#127a60]">
-              <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+              <CalendarDays className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
               Oktober 2026
             </span>
 
@@ -258,46 +257,46 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           </div>
         </div>
 
-        {/* Segmented View Control (Executive Tabs) */}
-        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
+        {/* Segmented View Control (Executive Segmented Control) */}
+        <div className="bg-slate-100/90 p-1 rounded-xl inline-flex flex-wrap gap-1 border border-slate-200/80 mt-3">
           <button
             type="button"
             onClick={() => setActiveView('overview')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
               activeView === 'overview'
-                ? 'bg-[#127a60] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
             }`}
           >
-            <Layers className="w-3.5 h-3.5" />
+            <Layers className="w-3.5 h-3.5 text-slate-500" />
             <span>Overview &amp; Channel Share</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveView('daily')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
               activeView === 'daily'
-                ? 'bg-[#127a60] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
             }`}
           >
-            <BarChart3 className="w-3.5 h-3.5" />
+            <BarChart3 className="w-3.5 h-3.5 text-slate-500" />
             <span>Traffic Day by Day</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveView('aftersales')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
               activeView === 'aftersales'
-                ? 'bg-[#127a60] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
             }`}
           >
-            <Package className="w-3.5 h-3.5" />
+            <Package className="w-3.5 h-3.5 text-slate-500" />
             <span>After-Sales &amp; Upsell WACommerce</span>
-            <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-white/20 text-current ml-0.5">
+            <span className="px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-emerald-100 text-emerald-800 ml-0.5">
               {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Won
             </span>
           </button>
@@ -305,147 +304,146 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           <button
             type="button"
             onClick={() => setActiveView('rubric')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition ${
               activeView === 'rubric'
-                ? 'bg-[#127a60] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 font-medium'
             }`}
           >
-            <ListChecks className="w-3.5 h-3.5" />
+            <ListChecks className="w-3.5 h-3.5 text-slate-500" />
             <span>Ketentuan &amp; Target KPI</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Top 5 Executive Stat Cards (Including AOV & After-Sales Upsell) */}
+      {/* 2. Top 5 Executive Stat Cards (Clean Executive Cards, No Rainbow Gradient) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" aria-label="Ringkasan performa utama Customer Happiness">
         {/* Stat 1: Revenue Attribution */}
-        <div className="bg-gradient-to-br from-emerald-50/60 via-white to-white rounded-xl p-3 border border-emerald-100/90 shadow-card flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg bg-emerald-100/80 border border-emerald-200/60 text-[#127a60] flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <TrendingUp className="w-4 h-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Revenue Attribution</span>
-            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
-              {formatCurrencyIDR(grandTotals.revenue)}
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-card flex flex-col justify-between hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="text-2xs font-semibold text-slate-500 truncate">Revenue Attribution</span>
+            <div className="w-6 h-6 rounded-md bg-[#EAF2E8] text-[#133326] flex items-center justify-center shrink-0">
+              <TrendingUp className="w-3.5 h-3.5" />
             </div>
-            <p className="text-3xs text-slate-500 mt-0.5 truncate">28 Campaign Aktif</p>
+          </div>
+          <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-sans tabular-nums truncate my-0.5">
+            {formatCurrencyIDR(grandTotals.revenue)}
+          </div>
+          <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
+            <span>Cakupan:</span>
+            <span className="font-semibold text-slate-700">28 Kampanye Aktif</span>
           </div>
         </div>
 
         {/* Stat 2: AOV (Average Order Value) - Req Tri */}
-        <div className="bg-gradient-to-br from-indigo-50/60 via-white to-white rounded-xl p-3 border border-indigo-100/90 shadow-card flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg bg-indigo-100/80 border border-indigo-200/60 text-indigo-700 flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <ShoppingBag className="w-4 h-4" />
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-card flex flex-col justify-between hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="text-2xs font-semibold text-slate-500 truncate">AOV (Rata-rata Order)</span>
+            <div className="w-6 h-6 rounded-md bg-[#EAF2E8] text-[#133326] flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-2xs font-medium text-slate-500 block truncate">AOV (Rata-rata Order)</span>
-              <span className="text-3xs font-semibold text-indigo-700 bg-indigo-50 px-1 rounded border border-indigo-200">
-                Avg
-              </span>
-            </div>
-            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
-              {formatCurrencyIDR(overallAov)}
-            </div>
-            <p className="text-3xs text-slate-500 mt-0.5 truncate">Total Omzet ÷ {grandTotals.paid} Paid</p>
+          <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-sans tabular-nums truncate my-0.5">
+            {formatCurrencyIDR(overallAov)}
+          </div>
+          <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
+            <span>Rasio:</span>
+            <span className="font-semibold text-slate-700">Omzet ÷ {grandTotals.paid} Paid</span>
           </div>
         </div>
 
         {/* Stat 3: Chats & Traffic */}
-        <div className="bg-gradient-to-br from-blue-50/50 via-white to-white rounded-xl p-3 border border-blue-100/90 shadow-card flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg bg-blue-100/80 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <MessagesSquare className="w-4 h-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Incoming Chats</span>
-            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums">
-              {formatNumber(grandTotals.chats)}
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-card flex flex-col justify-between hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="text-2xs font-semibold text-slate-500 truncate">Incoming Chats</span>
+            <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+              <MessagesSquare className="w-3.5 h-3.5" />
             </div>
-            <p className="text-3xs text-slate-500 mt-0.5 truncate">Deduplikasi Chat Masuk</p>
+          </div>
+          <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-sans tabular-nums truncate my-0.5">
+            {formatNumber(grandTotals.chats)}
+          </div>
+          <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
+            <span>Traffic:</span>
+            <span className="font-semibold text-slate-700">Deduplikasi Valid</span>
           </div>
         </div>
 
         {/* Stat 4: Leads & Paid */}
-        <div className="bg-gradient-to-br from-amber-50/50 via-white to-white rounded-xl p-3 border border-amber-100/90 shadow-card flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg bg-amber-100/80 border border-amber-200/60 text-amber-600 flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <UserCheck className="w-4 h-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Leads &amp; Paid Won</span>
-            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums">
-              {formatNumber(grandTotals.leads)} <span className="text-xs font-normal text-slate-500">/ {grandTotals.paid}</span>
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-card flex flex-col justify-between hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="text-2xs font-semibold text-slate-500 truncate">Leads &amp; Paid Won</span>
+            <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-700 flex items-center justify-center shrink-0">
+              <UserCheck className="w-3.5 h-3.5" />
             </div>
-            <p className="text-3xs text-slate-500 mt-0.5 truncate">Konversi: {formatPercent(grandTotals.paid / grandTotals.chats, 1)}</p>
+          </div>
+          <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-sans tabular-nums truncate my-0.5">
+            {formatNumber(grandTotals.leads)} <span className="text-xs font-normal text-slate-400">/ {grandTotals.paid}</span>
+          </div>
+          <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
+            <span>Konversi:</span>
+            <span className="font-semibold text-emerald-800">{formatPercent(grandTotals.paid / grandTotals.chats, 1)} CVR</span>
           </div>
         </div>
 
         {/* Stat 5: After-Sales Upsell Revenue (WACommerce) - Req Tri */}
-        <div className="bg-gradient-to-br from-purple-50/60 via-white to-white rounded-xl p-3 border border-purple-100/90 shadow-card flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg bg-purple-100/80 border border-purple-200/60 text-purple-700 flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <PackageCheck className="w-4 h-4" />
+        <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-card flex flex-col justify-between hover:border-slate-300 transition-colors">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="text-2xs font-semibold text-slate-500 truncate">After-Sales Upsell</span>
+            <div className="w-6 h-6 rounded-md bg-[#EAF2E8] text-[#133326] flex items-center justify-center shrink-0">
+              <PackageCheck className="w-3.5 h-3.5" />
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-1">
-              <span className="text-2xs font-medium text-slate-500 block truncate">After-Sales Upsell</span>
-              <span className="text-3xs font-semibold text-purple-700 bg-purple-50 px-1 rounded border border-purple-200">
-                Won
-              </span>
-            </div>
-            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
-              {formatCurrencyIDR(HAPPINESS_AFTERSALES_DATA.totalUpsellRevenue)}
-            </div>
-            <p className="text-3xs text-slate-500 mt-0.5 truncate">
-              {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Closing (CVR {formatPercent(HAPPINESS_AFTERSALES_DATA.upsellConversionPct / 100, 1)})
-            </p>
+          <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight font-sans tabular-nums truncate my-0.5">
+            {formatCurrencyIDR(HAPPINESS_AFTERSALES_DATA.totalUpsellRevenue)}
+          </div>
+          <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
+            <span>Closing WA:</span>
+            <span className="font-semibold text-emerald-800">{HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Won ({formatPercent(HAPPINESS_AFTERSALES_DATA.upsellConversionPct / 100, 1)})</span>
           </div>
         </div>
       </div>
 
-      {/* 3. Insight Today Banner (Executive Operational Digest) */}
-      <div className="bg-gradient-to-r from-emerald-900 to-[#127a60] text-white rounded-xl p-3.5 shadow-card">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300">
-            <Lightbulb className="w-4 h-4" />
+      {/* 3. Insight Operasional Harian (Clean Executive Briefing, Anti AI-Slop, No Emojis, Quiet Chrome) */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-card">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#127a60]" aria-hidden="true" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Insight Operasional Hari Ini · Tri Customer Happiness
+            </h2>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
-                Insight Today · Ringkasan Operasional Tri
-              </span>
-              <span className="px-1.5 py-0.5 rounded text-3xs font-semibold bg-white/20 text-white">
-                Hari ini
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs text-emerald-50/95 leading-relaxed mt-1">
-              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
-                <strong className="text-white block font-semibold mb-0.5">🚀 Dominasi ScentplusClub:</strong>
-                Sub-channel SC menghasilkan <strong className="text-emerald-200">89,2%</strong> total omzet akuisisi. Channel Threads &amp; TikTok mulai mencatat respon lead yang positif.
-              </div>
-              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
-                <strong className="text-white block font-semibold mb-0.5">💰 Stabilitas AOV:</strong>
-                Rata-rata nilai belanja stabil di <strong className="text-emerald-200">{formatCurrencyIDR(overallAov)}</strong>/order, didorong oleh bundling PROMO 925 dan Scentplus Day.
-              </div>
-              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
-                <strong className="text-white block font-semibold mb-0.5">📦 Momentum After-Sales:</strong>
-                Dari 265 customer berstatus paket dikirim yang ditawari promo baru via WACommerce, <strong className="text-amber-300">58 customer</strong> berhasil closing repeat order (+Rp13,92 Juta).
-              </div>
-            </div>
+          <span className="text-3xs font-mono text-slate-400">
+            Periode Evaluasi Oktober
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-slate-600">
+          <div className="space-y-1">
+            <span className="text-3xs font-bold text-slate-400 uppercase tracking-wider block">
+              Akuisisi &amp; Saluran
+            </span>
+            <p className="leading-relaxed text-slate-700">
+              <strong className="text-slate-900 font-semibold">ScentplusClub (SC)</strong> menyumbang <span className="font-semibold text-emerald-800">89,2%</span> dari total omzet akuisisi, sementara kanal Threads dan TikTok mulai berkontribusi pada leads baru.
+            </p>
+          </div>
+
+          <div className="space-y-1 md:border-l md:border-slate-100 md:pl-4">
+            <span className="text-3xs font-bold text-slate-400 uppercase tracking-wider block">
+              Basket Size &amp; AOV
+            </span>
+            <p className="leading-relaxed text-slate-700">
+              Rata-rata nilai belanja konsisten di angka <strong className="text-slate-900 font-semibold">{formatCurrencyIDR(overallAov)}</strong> per order, didorong transaksi bundling kampanye 925 dan promo Scentplus Day.
+            </p>
+          </div>
+
+          <div className="space-y-1 md:border-l md:border-slate-100 md:pl-4">
+            <span className="text-3xs font-bold text-slate-400 uppercase tracking-wider block">
+              After-Sales &amp; Retensi
+            </span>
+            <p className="leading-relaxed text-slate-700">
+              Dari 265 customer berstatus paket dikirim yang ditawari promo via WACommerce, <strong className="text-slate-900 font-semibold">58 customer</strong> berhasil closing repeat order baru (+Rp13,92 Juta).
+            </p>
           </div>
         </div>
       </div>
@@ -715,7 +713,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
                     <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-44">
                       <div className="bg-slate-900 text-white text-3xs rounded-lg p-2 shadow-xl border border-slate-700 leading-tight">
                         <div className="font-bold text-amber-300 mb-0.5">{d.date}</div>
-                        {d.highlight && <div className="text-emerald-300 font-semibold mb-1">★ {d.highlight}</div>}
+                        {d.highlight && <div className="text-emerald-300 font-semibold mb-1">{d.highlight}</div>}
                         <div>Omzet: <strong className="tabular-nums">{formatCurrencyIDR(d.revenue)}</strong></div>
                         <div>Chats: <strong className="tabular-nums">{d.chats}</strong> · Leads: <strong className="tabular-nums">{d.leads}</strong></div>
                         <div>Paid: <strong className="tabular-nums">{d.paid}</strong> · AOV: <strong className="tabular-nums">{formatCurrencyIDR(d.aov)}</strong></div>
