@@ -3,7 +3,9 @@ import { CustomerHappinessSummary } from '../types';
 import {
   HAPPINESS_CAMPAIGN_ROWS,
   HAPPINESS_10_INDICATORS,
-  HappinessCampaignRow,
+  HAPPINESS_DAILY_TRAFFIC,
+  HAPPINESS_AFTERSALES_DATA,
+  HappinessSubChannel,
 } from '../data/customerHappinessData';
 import {
   formatCurrencyIDR,
@@ -13,13 +15,20 @@ import {
 import {
   CalendarDays,
   ListChecks,
-  ChevronDown,
-  ChevronUp,
   X,
   TrendingUp,
   MessagesSquare,
   UserCheck,
-  CreditCard,
+  Package,
+  Truck,
+  PackageCheck,
+  Lightbulb,
+  Layers,
+  BarChart3,
+  Sparkles,
+  ShoppingBag,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 
 interface CustomerHappinessModuleProps {
@@ -28,21 +37,25 @@ interface CustomerHappinessModuleProps {
 
 const PAGE_SIZE = 7;
 
+type ViewMode = 'overview' | 'daily' | 'aftersales' | 'rubric';
+
 export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = () => {
-  const [selectedChannel, setSelectedChannel] = useState<'all' | 'custom' | 'instagram'>('all');
+  const [activeView, setActiveView] = useState<ViewMode>('overview');
+  const [selectedSubChannel, setSelectedSubChannel] = useState<'all' | HappinessSubChannel>('all');
   const [page, setPage] = useState<number>(0);
   const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
-  const [isScoringOpen, setIsScoringOpen] = useState<boolean>(false);
+  const [dailyMetric, setDailyMetric] = useState<'revenue' | 'chats' | 'leads' | 'aov'>('revenue');
+  const [aftersalesFilter, setAftersalesFilter] = useState<'all' | 'akan_dikirim' | 'sedang_dikirim' | 'sudah_diterima'>('all');
 
   const scoringRef = useRef<HTMLDivElement>(null);
 
   // Filtered rows for the campaign table
   const filteredRows = useMemo(() => {
     return HAPPINESS_CAMPAIGN_ROWS.filter((r) => {
-      if (selectedChannel === 'all') return true;
-      return r.channel === selectedChannel;
+      if (selectedSubChannel === 'all') return true;
+      return r.subChannel === selectedSubChannel;
     }).sort((a, b) => b.revenue - a.revenue || a.id - b.id);
-  }, [selectedChannel]);
+  }, [selectedSubChannel]);
 
   // Pagination calculations
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -50,19 +63,6 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
   const paginatedRows = useMemo(() => {
     return filteredRows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   }, [filteredRows, currentPage]);
-
-  // Totals for filtered rows (table footer)
-  const filteredTotals = useMemo(() => {
-    return filteredRows.reduce(
-      (acc, r) => ({
-        chats: acc.chats + r.chats,
-        leads: acc.leads + r.leads,
-        paid: acc.paid + r.paid,
-        revenue: acc.revenue + r.revenue,
-      }),
-      { chats: 0, leads: 0, paid: 0, revenue: 0 }
-    );
-  }, [filteredRows]);
 
   // Overall totals across all 28 campaigns (October 2026 baseline)
   const grandTotals = useMemo(() => {
@@ -77,37 +77,65 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     );
   }, []);
 
-  // Channel breakdown (Custom vs Instagram)
-  const channelBreakdown = useMemo(() => {
-    const customRows = HAPPINESS_CAMPAIGN_ROWS.filter((r) => r.channel === 'custom');
-    const igRows = HAPPINESS_CAMPAIGN_ROWS.filter((r) => r.channel === 'instagram');
+  // Overall AOV
+  const overallAov = useMemo(() => {
+    return grandTotals.paid > 0 ? Math.round(grandTotals.revenue / grandTotals.paid) : 0;
+  }, [grandTotals]);
 
-    const sum = (rows: HappinessCampaignRow[]) =>
-      rows.reduce(
-        (acc, r) => ({
-          count: acc.count + 1,
-          chats: acc.chats + r.chats,
-          leads: acc.leads + r.leads,
-          paid: acc.paid + r.paid,
-          revenue: acc.revenue + r.revenue,
-        }),
-        { count: 0, chats: 0, leads: 0, paid: 0, revenue: 0 }
-      );
+  // Filtered totals for campaign table footer
+  const filteredTotals = useMemo(() => {
+    const res = filteredRows.reduce(
+      (acc, r) => ({
+        chats: acc.chats + r.chats,
+        leads: acc.leads + r.leads,
+        paid: acc.paid + r.paid,
+        revenue: acc.revenue + r.revenue,
+      }),
+      { chats: 0, leads: 0, paid: 0, revenue: 0 }
+    );
+    const aov = res.paid > 0 ? Math.round(res.revenue / res.paid) : 0;
+    return { ...res, aov };
+  }, [filteredRows]);
 
-    const custom = sum(customRows);
-    const instagram = sum(igRows);
+  // Detailed Source Performance Breakdown (Persentase % & Sub-channels)
+  const sourcePerformance = useMemo(() => {
+    const subChannels: HappinessSubChannel[] = [
+      'ScentplusClub',
+      'Instagram',
+      'TikTok',
+      'StoryWA',
+      'Threads',
+    ];
+
     const totalRev = grandTotals.revenue || 1;
+    const totalChats = grandTotals.chats || 1;
+    const totalLeads = grandTotals.leads || 1;
+    const totalPaid = grandTotals.paid || 1;
 
-    return {
-      custom: {
-        ...custom,
-        sharePct: (custom.revenue / totalRev) * 100,
-      },
-      instagram: {
-        ...instagram,
-        sharePct: (instagram.revenue / totalRev) * 100,
-      },
-    };
+    return subChannels.map((sc) => {
+      const rows = HAPPINESS_CAMPAIGN_ROWS.filter((r) => r.subChannel === sc);
+      const revenue = rows.reduce((acc, r) => acc + r.revenue, 0);
+      const chats = rows.reduce((acc, r) => acc + r.chats, 0);
+      const leads = rows.reduce((acc, r) => acc + r.leads, 0);
+      const paid = rows.reduce((acc, r) => acc + r.paid, 0);
+      const aov = paid > 0 ? Math.round(revenue / paid) : 0;
+      const cvr = chats > 0 ? (paid / chats) * 100 : 0;
+
+      return {
+        subChannel: sc,
+        count: rows.length,
+        revenue,
+        chats,
+        leads,
+        paid,
+        aov,
+        cvr,
+        shareRevPct: (revenue / totalRev) * 100,
+        shareChatsPct: (chats / totalChats) * 100,
+        shareLeadsPct: (leads / totalLeads) * 100,
+        sharePaidPct: (paid / totalPaid) * 100,
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
   }, [grandTotals]);
 
   // Top 5 ranking campaigns by revenue
@@ -123,36 +151,96 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     return HAPPINESS_CAMPAIGN_ROWS.find((r) => r.id === selectedCampaignId) ?? null;
   }, [selectedCampaignId]);
 
+  // Filtered aftersales tickets
+  const filteredTickets = useMemo(() => {
+    if (aftersalesFilter === 'all') return HAPPINESS_AFTERSALES_DATA.tickets;
+    return HAPPINESS_AFTERSALES_DATA.tickets.filter((t) => t.packageStatus === aftersalesFilter);
+  }, [aftersalesFilter]);
+
+  // Max value calculation for Daily Chart scaling
+  const dailyMaxVal = useMemo(() => {
+    if (dailyMetric === 'revenue') {
+      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.revenue));
+    }
+    if (dailyMetric === 'chats') {
+      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.chats));
+    }
+    if (dailyMetric === 'leads') {
+      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.leads));
+    }
+    return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.aov));
+  }, [dailyMetric]);
+
   const handleOpenKetentuan = () => {
-    setIsScoringOpen(true);
+    setActiveView('rubric');
     setTimeout(() => {
       scoringRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
   };
 
+  const getSubChannelBadge = (subChannel: HappinessSubChannel) => {
+    switch (subChannel) {
+      case 'ScentplusClub':
+        return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      case 'Instagram':
+        return 'bg-sky-50 text-sky-800 border-sky-200';
+      case 'TikTok':
+        return 'bg-violet-50 text-violet-800 border-violet-200';
+      case 'StoryWA':
+        return 'bg-amber-50 text-amber-800 border-amber-200';
+      case 'Threads':
+        return 'bg-slate-100 text-slate-800 border-slate-300';
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200';
+    }
+  };
+
+  const getPackageStatusBadge = (status: 'akan_dikirim' | 'sedang_dikirim' | 'sudah_diterima') => {
+    switch (status) {
+      case 'akan_dikirim':
+        return {
+          label: 'Akan Dikirim',
+          cls: 'bg-amber-50 text-amber-800 border-amber-200',
+          icon: <Clock className="w-3 h-3 text-amber-600" />,
+        };
+      case 'sedang_dikirim':
+        return {
+          label: 'Sedang Dikirim',
+          cls: 'bg-blue-50 text-blue-800 border-blue-200',
+          icon: <Truck className="w-3 h-3 text-blue-600" />,
+        };
+      case 'sudah_diterima':
+        return {
+          label: 'Sudah Diterima',
+          cls: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+          icon: <PackageCheck className="w-3 h-3 text-emerald-600" />,
+        };
+    }
+  };
+
   return (
     <div className="space-y-4 text-slate-800">
-      {/* 1. Header Banner & Title Area (Compact) */}
+      {/* 1. Header Banner & View Controls */}
       <div className="bg-white rounded-xl px-4 py-3.5 border border-slate-200/90 shadow-card">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-2xs font-bold tracking-widest text-[#127a60] uppercase">
-                ACQUISITION PERFORMANCE
+                CUSTOMER HAPPINESS &amp; ACQUISITION
               </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-[#fff6e7] text-[#8c5e18] border border-amber-200">
-                Pratinjau modul
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-2xs font-semibold bg-[#e6f4ee] text-[#127a60] border border-emerald-200">
+                <Sparkles className="w-3 h-3" /> Live Operations
               </span>
             </div>
             <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight mt-0.5">
-              KPI Customer Happiness · Tri
+              Customer Happiness &amp; Retention · Tri
             </h1>
             <p className="text-2xs text-slate-500 mt-0.5">
-              Kontribusi akuisisi, campaign, dan aktivasi channel (Periode laporan dan penilaian KPI ditampilkan terpisah).
+              Akuisisi Multi-Channel, AOV, Traffic Harian, dan After-Sales Upselling via WACommerce.
             </p>
           </div>
 
-          {/* Toolbar */}
+          {/* Period Badge & Quick Action */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-[#e6f4ee] text-[#127a60]">
               <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
@@ -165,431 +253,808 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#127a60]"
             >
               <ListChecks className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
-              <span>Lihat ketentuan KPI</span>
+              <span>Rubrik 10 KPI</span>
             </button>
           </div>
         </div>
+
+        {/* Segmented View Control (Executive Tabs) */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setActiveView('overview')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeView === 'overview'
+                ? 'bg-[#127a60] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Overview &amp; Channel Share</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('daily')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeView === 'daily'
+                ? 'bg-[#127a60] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Traffic Day by Day</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('aftersales')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeView === 'aftersales'
+                ? 'bg-[#127a60] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+            <span>After-Sales &amp; Upsell WACommerce</span>
+            <span className="px-1.5 py-0.2 rounded-full text-3xs font-bold bg-white/20 text-current ml-0.5">
+              {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Won
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('rubric')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeView === 'rubric'
+                ? 'bg-[#127a60] text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <ListChecks className="w-3.5 h-3.5" />
+            <span>Ketentuan &amp; Target KPI</span>
+          </button>
+        </div>
       </div>
 
-      {/* 2. Top 4 Executive Stat Cards (Compact OpsFlow Tinted Squircle Style) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Ringkasan performa Oktober">
-        {/* Stat 1: Revenue Attribution (Emerald Tint) */}
-        <div className="bg-gradient-to-br from-emerald-50/60 via-white to-white rounded-xl p-3.5 border border-emerald-100/90 shadow-card flex items-center gap-3">
+      {/* 2. Top 5 Executive Stat Cards (Including AOV & After-Sales Upsell) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" aria-label="Ringkasan performa utama Customer Happiness">
+        {/* Stat 1: Revenue Attribution */}
+        <div className="bg-gradient-to-br from-emerald-50/60 via-white to-white rounded-xl p-3 border border-emerald-100/90 shadow-card flex items-center gap-2.5">
           <div
-            className="w-9 h-9 rounded-xl bg-emerald-100/80 border border-emerald-200/60 text-[#127a60] flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-lg bg-emerald-100/80 border border-emerald-200/60 text-[#127a60] flex items-center justify-center shrink-0"
             aria-hidden="true"
           >
             <TrendingUp className="w-4 h-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Revenue attribution</span>
-            <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight tabular-nums mt-0.5 truncate">
+            <span className="text-2xs font-medium text-slate-500 block truncate">Revenue Attribution</span>
+            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
               {formatCurrencyIDR(grandTotals.revenue)}
             </div>
-            <p className="text-2xs text-slate-500 mt-0.5 truncate">Kontribusi seluruh campaign</p>
+            <p className="text-3xs text-slate-500 mt-0.5 truncate">28 Campaign Aktif</p>
           </div>
         </div>
 
-        {/* Stat 2: Chats (Blue Tint) */}
-        <div className="bg-gradient-to-br from-blue-50/50 via-white to-white rounded-xl p-3.5 border border-blue-100/90 shadow-card flex items-center gap-3">
+        {/* Stat 2: AOV (Average Order Value) - Req Tri */}
+        <div className="bg-gradient-to-br from-indigo-50/60 via-white to-white rounded-xl p-3 border border-indigo-100/90 shadow-card flex items-center gap-2.5">
           <div
-            className="w-9 h-9 rounded-xl bg-blue-100/80 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-lg bg-indigo-100/80 border border-indigo-200/60 text-indigo-700 flex items-center justify-center shrink-0"
+            aria-hidden="true"
+          >
+            <ShoppingBag className="w-4 h-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-2xs font-medium text-slate-500 block truncate">AOV (Rata-rata Order)</span>
+              <span className="text-3xs font-semibold text-indigo-700 bg-indigo-50 px-1 rounded border border-indigo-200">
+                Avg
+              </span>
+            </div>
+            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
+              {formatCurrencyIDR(overallAov)}
+            </div>
+            <p className="text-3xs text-slate-500 mt-0.5 truncate">Total Omzet ÷ {grandTotals.paid} Paid</p>
+          </div>
+        </div>
+
+        {/* Stat 3: Chats & Traffic */}
+        <div className="bg-gradient-to-br from-blue-50/50 via-white to-white rounded-xl p-3 border border-blue-100/90 shadow-card flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg bg-blue-100/80 border border-blue-200/60 text-blue-600 flex items-center justify-center shrink-0"
             aria-hidden="true"
           >
             <MessagesSquare className="w-4 h-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Chats</span>
-            <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight tabular-nums mt-0.5">
+            <span className="text-2xs font-medium text-slate-500 block truncate">Incoming Chats</span>
+            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums">
               {formatNumber(grandTotals.chats)}
             </div>
-            <p className="text-2xs text-slate-500 mt-0.5 truncate">Percakapan seluruh campaign</p>
+            <p className="text-3xs text-slate-500 mt-0.5 truncate">Deduplikasi Chat Masuk</p>
           </div>
         </div>
 
-        {/* Stat 3: Leads (Amber Tint) */}
-        <div className="bg-gradient-to-br from-amber-50/50 via-white to-white rounded-xl p-3.5 border border-amber-100/90 shadow-card flex items-center gap-3">
+        {/* Stat 4: Leads & Paid */}
+        <div className="bg-gradient-to-br from-amber-50/50 via-white to-white rounded-xl p-3 border border-amber-100/90 shadow-card flex items-center gap-2.5">
           <div
-            className="w-9 h-9 rounded-xl bg-amber-100/80 border border-amber-200/60 text-amber-600 flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-lg bg-amber-100/80 border border-amber-200/60 text-amber-600 flex items-center justify-center shrink-0"
             aria-hidden="true"
           >
             <UserCheck className="w-4 h-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Leads</span>
-            <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight tabular-nums mt-0.5">
-              {formatNumber(grandTotals.leads)}
+            <span className="text-2xs font-medium text-slate-500 block truncate">Leads &amp; Paid Won</span>
+            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums">
+              {formatNumber(grandTotals.leads)} <span className="text-xs font-normal text-slate-500">/ {grandTotals.paid}</span>
             </div>
-            <p className="text-2xs text-slate-500 mt-0.5 truncate">Leads seluruh campaign</p>
+            <p className="text-3xs text-slate-500 mt-0.5 truncate">Konversi: {formatPercent(grandTotals.paid / grandTotals.chats, 1)}</p>
           </div>
         </div>
 
-        {/* Stat 4: Paid (Teal Tint) */}
-        <div className="bg-gradient-to-br from-teal-50/50 via-white to-white rounded-xl p-3.5 border border-teal-100/90 shadow-card flex items-center gap-3">
+        {/* Stat 5: After-Sales Upsell Revenue (WACommerce) - Req Tri */}
+        <div className="bg-gradient-to-br from-purple-50/60 via-white to-white rounded-xl p-3 border border-purple-100/90 shadow-card flex items-center gap-2.5">
           <div
-            className="w-9 h-9 rounded-xl bg-teal-100/80 border border-teal-200/60 text-teal-600 flex items-center justify-center shrink-0"
+            className="w-8 h-8 rounded-lg bg-purple-100/80 border border-purple-200/60 text-purple-700 flex items-center justify-center shrink-0"
             aria-hidden="true"
           >
-            <CreditCard className="w-4 h-4" />
+            <PackageCheck className="w-4 h-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <span className="text-2xs font-medium text-slate-500 block truncate">Paid</span>
-            <div className="text-base sm:text-lg font-bold text-slate-900 tracking-tight tabular-nums mt-0.5">
-              {formatNumber(grandTotals.paid)}
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-2xs font-medium text-slate-500 block truncate">After-Sales Upsell</span>
+              <span className="text-3xs font-semibold text-purple-700 bg-purple-50 px-1 rounded border border-purple-200">
+                Won
+              </span>
             </div>
-            <p className="text-2xs text-slate-500 mt-0.5 truncate">Paid seluruh campaign</p>
+            <div className="text-sm sm:text-base font-bold text-slate-900 tracking-tight tabular-nums truncate">
+              {formatCurrencyIDR(HAPPINESS_AFTERSALES_DATA.totalUpsellRevenue)}
+            </div>
+            <p className="text-3xs text-slate-500 mt-0.5 truncate">
+              {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Closing (CVR {formatPercent(HAPPINESS_AFTERSALES_DATA.upsellConversionPct / 100, 1)})
+            </p>
           </div>
         </div>
       </div>
 
-      {/* 3. 2-Column Grid: Channel Breakdown & KPI Status */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Panel 1: Kontribusi Channel */}
-        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between" aria-label="Revenue per channel">
-          <div>
-            <div className="flex items-center justify-between mb-3.5">
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Kontribusi channel</h2>
-              <span className="text-2xs text-slate-500 font-medium">Revenue Oktober</span>
+      {/* 3. Insight Today Banner (Executive Operational Digest) */}
+      <div className="bg-gradient-to-r from-emerald-900 to-[#127a60] text-white rounded-xl p-3.5 shadow-card">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center shrink-0 text-amber-300">
+            <Lightbulb className="w-4 h-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
+                Insight Today · Ringkasan Operasional Tri
+              </span>
+              <span className="px-1.5 py-0.5 rounded text-3xs font-semibold bg-white/20 text-white">
+                Hari ini
+              </span>
             </div>
-
-            {/* Stack Bar */}
-            <div
-              className="flex h-3 rounded-md overflow-hidden bg-slate-100 mb-4"
-              role="img"
-              aria-label={`Custom ${formatPercent(channelBreakdown.custom.sharePct / 100, 2)}; Instagram ${formatPercent(channelBreakdown.instagram.sharePct / 100, 2)}`}
-            >
-              <div
-                className="bg-[#127a60] transition-all"
-                style={{ width: `${channelBreakdown.custom.sharePct}%` }}
-                title={`Custom: ${formatPercent(channelBreakdown.custom.sharePct / 100, 2)}`}
-              />
-              <div
-                className="bg-[#597c9a] transition-all"
-                style={{ width: `${channelBreakdown.instagram.sharePct}%` }}
-                title={`Instagram: ${formatPercent(channelBreakdown.instagram.sharePct / 100, 2)}`}
-              />
-            </div>
-
-            {/* Channel List */}
-            <div className="divide-y divide-slate-100">
-              {/* Custom */}
-              <div className="py-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-xs bg-[#127a60] inline-block" aria-hidden="true" />
-                    Custom
-                  </h3>
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {formatCurrencyIDR(channelBreakdown.custom.revenue)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-2xs text-slate-500 mt-1">
-                  <span>
-                    {channelBreakdown.custom.count} baris · {channelBreakdown.custom.chats} chats · {channelBreakdown.custom.leads} leads
-                  </span>
-                  <span className="font-medium text-slate-700 tabular-nums">
-                    {formatPercent(channelBreakdown.custom.sharePct / 100, 2)}
-                  </span>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs text-emerald-50/95 leading-relaxed mt-1">
+              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
+                <strong className="text-white block font-semibold mb-0.5">🚀 Dominasi ScentplusClub:</strong>
+                Sub-channel SC menghasilkan <strong className="text-emerald-200">89,2%</strong> total omzet akuisisi. Channel Threads &amp; TikTok mulai mencatat respon lead yang positif.
               </div>
-
-              {/* Instagram */}
-              <div className="py-2.5">
-                <div className="flex items-center justify-between text-xs">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-xs bg-[#597c9a] inline-block" aria-hidden="true" />
-                    Instagram
-                  </h3>
-                  <span className="font-bold text-slate-900 tabular-nums">
-                    {formatCurrencyIDR(channelBreakdown.instagram.revenue)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-2xs text-slate-500 mt-1">
-                  <span>
-                    {channelBreakdown.instagram.count} baris · {channelBreakdown.instagram.chats} chats · {channelBreakdown.instagram.leads} leads
-                  </span>
-                  <span className="font-medium text-slate-700 tabular-nums">
-                    {formatPercent(channelBreakdown.instagram.sharePct / 100, 2)}
-                  </span>
-                </div>
+              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
+                <strong className="text-white block font-semibold mb-0.5">💰 Stabilitas AOV:</strong>
+                Rata-rata nilai belanja stabil di <strong className="text-emerald-200">{formatCurrencyIDR(overallAov)}</strong>/order, didorong oleh bundling PROMO 925 dan Scentplus Day.
+              </div>
+              <div className="bg-black/10 rounded-lg p-2 border border-white/10">
+                <strong className="text-white block font-semibold mb-0.5">📦 Momentum After-Sales:</strong>
+                Dari 265 customer berstatus paket dikirim yang ditawari promo baru via WACommerce, <strong className="text-amber-300">58 customer</strong> berhasil closing repeat order (+Rp13,92 Juta).
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <p className="text-2xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
-            Distribusi kontribusi revenue menurut channel akuisisi.
-          </p>
-        </section>
-
-        {/* Panel 2: Status Perhitungan KPI */}
-        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3.5">
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Status perhitungan KPI</h2>
-              <span className="inline-flex items-center gap-1 text-2xs px-2.5 py-0.5 rounded-md font-semibold bg-[#fff6e7] text-[#8c5e18] border border-amber-200">
-                November 2026
+      {/* VIEW 1: OVERVIEW & SOURCE PERFORMANCE (DEFAULT) */}
+      {activeView === 'overview' && (
+        <div className="space-y-4">
+          {/* Source Performance Section with Sub-channels & Percentages */}
+          <section className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-card">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#127a60]" />
+                  Kontribusi Channel &amp; Source Performance (%)
+                </h2>
+                <p className="text-2xs text-slate-500 mt-0.5">
+                  Rincian sub-channel akuisisi (ScentplusClub, Instagram, Threads, TikTok, Story WA) lengkap dengan proporsi omzet &amp; AOV.
+                </p>
+              </div>
+              <span className="text-2xs text-slate-600 bg-slate-50 border border-slate-200 px-2 py-1 rounded-md font-mono">
+                Total: {formatCurrencyIDR(grandTotals.revenue)}
               </span>
             </div>
 
-            {/* KPI State Symbol */}
-            <div className="flex items-center gap-3.5 mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200/60">
-              <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-xl font-bold text-slate-400">
-                —
+            {/* Visual Stack Bar */}
+            <div className="mb-4">
+              <div className="flex h-3.5 rounded-lg overflow-hidden bg-slate-100 p-0.5 border border-slate-200" role="img" aria-label="Distribusi revenue per sub-channel">
+                {sourcePerformance.map((src) => (
+                  <div
+                    key={src.subChannel}
+                    style={{ width: `${Math.max(src.shareRevPct, 1.5)}%` }}
+                    className={`h-full transition-all ${
+                      src.subChannel === 'ScentplusClub'
+                        ? 'bg-[#127a60]'
+                        : src.subChannel === 'Instagram'
+                        ? 'bg-[#0284c7]'
+                        : src.subChannel === 'TikTok'
+                        ? 'bg-[#7c3aed]'
+                        : src.subChannel === 'StoryWA'
+                        ? 'bg-[#d97706]'
+                        : 'bg-[#475569]'
+                    }`}
+                    title={`${src.subChannel}: ${formatPercent(src.shareRevPct / 100, 1)} (${formatCurrencyIDR(src.revenue)})`}
+                  />
+                ))}
               </div>
-              <div>
-                <div className="text-sm font-bold text-slate-900 tracking-tight">Belum dapat dihitung</div>
-                <div className="text-2xs text-slate-500">Realisasi periode penilaian belum tersedia</div>
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-3xs text-slate-600">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-[#127a60]" /> ScentplusClub (SC)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-[#0284c7]" /> Instagram</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-[#7c3aed]" /> TikTok</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-[#d97706]" /> Story WA</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-xs bg-[#475569]" /> Threads</span>
               </div>
             </div>
 
-            {/* Metric Lines */}
-            <div className="divide-y divide-slate-100 text-xs">
-              <div className="py-2 flex items-center justify-between">
-                <span className="text-slate-600">Bobot KPI utama</span>
-                <strong className="text-slate-900 font-bold">100%</strong>
+            {/* Source Performance Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+              {sourcePerformance.map((src) => (
+                <div
+                  key={src.subChannel}
+                  className="bg-slate-50/70 hover:bg-slate-50 rounded-xl p-3 border border-slate-200/80 transition flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                      <span className={`px-2 py-0.5 rounded text-3xs font-bold border ${getSubChannelBadge(src.subChannel)}`}>
+                        {src.subChannel === 'ScentplusClub' ? 'ScentplusClub (SC)' : src.subChannel}
+                      </span>
+                      <span className="text-xs font-bold text-[#127a60] font-mono tabular-nums">
+                        {formatPercent(src.shareRevPct / 100, 1)}
+                      </span>
+                    </div>
+
+                    <div className="text-sm font-bold text-slate-900 tabular-nums">
+                      {formatCurrencyIDR(src.revenue)}
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/70 text-3xs space-y-1 text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span>AOV:</span>
+                      <strong className="text-slate-900 font-semibold tabular-nums">{formatCurrencyIDR(src.aov)}</strong>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Chats / Leads:</span>
+                      <span className="tabular-nums">{src.chats} / {src.leads}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Paid / CVR:</span>
+                      <span className="font-semibold text-emerald-700 tabular-nums">{src.paid} ({formatPercent(src.cvr / 100, 1)})</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 2-Column: Top 5 Campaigns & Bonus Growth */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Panel 1: Top 5 Campaigns Ranking */}
+            <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-bold text-slate-900 tracking-tight">Campaign dengan Revenue Terbesar</h2>
+                  <span className="text-2xs text-slate-500 font-medium">5 Baris Teratas</span>
+                </div>
+
+                <div className="space-y-3.5">
+                  {top5Campaigns.map((camp, idx) => {
+                    const pct = (camp.revenue / grandTotals.revenue) * 100;
+                    return (
+                      <div key={camp.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 truncate max-w-[70%]">
+                            <span className="font-bold text-slate-400 text-2xs">{idx + 1}.</span>
+                            <span className="font-semibold text-slate-800 truncate">{camp.name}</span>
+                            <span className={`px-1.5 py-0.2 rounded text-3xs font-semibold border shrink-0 ${getSubChannelBadge(camp.subChannel)}`}>
+                              {camp.subChannel}
+                            </span>
+                          </div>
+                          <span className="font-bold text-slate-900 tabular-nums">
+                            {formatCurrencyIDR(camp.revenue)}
+                          </span>
+                        </div>
+                        <div
+                          className="h-2 rounded-full bg-slate-100 overflow-hidden"
+                          role="img"
+                          aria-label={`${camp.name}: ${formatPercent(pct / 100, 2)} dari total revenue`}
+                        >
+                          <div
+                            className="h-full bg-[#127a60] rounded-full transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="py-2 flex items-center justify-between">
-                <span className="text-slate-600">Batas skor utama</span>
-                <strong className="text-slate-900 font-bold">120 poin</strong>
+
+              <p className="text-2xs text-slate-500 mt-4 pt-3 border-t border-slate-100">
+                Porsi kontribusi terhadap total revenue attribution Scentplus Customer Happiness.
+              </p>
+            </section>
+
+            {/* Panel 2: Bonus Revenue Growth */}
+            <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3.5">
+                  <h2 className="text-sm font-bold text-slate-900 tracking-tight">Bonus Revenue Growth (30% MoM)</h2>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    Di luar KPI
+                  </span>
+                </div>
+
+                <div className="divide-y divide-slate-100 text-xs">
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span className="text-slate-600">Baseline Oktober</span>
+                    <strong className="text-slate-900 font-bold tabular-nums">
+                      {formatCurrencyIDR(53275260)}
+                    </strong>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span className="text-slate-600">Syarat Growth</span>
+                    <strong className="text-slate-900 font-bold">≥30% MoM</strong>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span className="text-slate-600">Target Ambang November</span>
+                    <strong className="text-slate-900 font-bold tabular-nums">
+                      {formatCurrencyIDR(69257838)}
+                    </strong>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span className="text-slate-600">Actual November</span>
+                    <strong className="text-slate-400 font-mono font-bold">— (Dalam Proses)</strong>
+                  </div>
+                </div>
+
+                <p className="text-xs font-semibold text-[#8c5e18] mt-3">
+                  Kelayakan bonus dinilai setelah realisasi akhir bulan terverifikasi.
+                </p>
               </div>
-              <div className="py-2 flex items-center justify-between">
-                <span className="text-slate-600">Bonus growth</span>
-                <strong className="text-slate-900 font-bold">Terpisah dari skor</strong>
-              </div>
+
+              <p className="text-2xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
+                Revenue harus paid, tervalidasi, tanpa double attribution, dan tracking konsisten.
+              </p>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: TRAFFIC DAY BY DAY (REQ TRI) */}
+      {activeView === 'daily' && (
+        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-[#127a60]" />
+                Traffic Day by Day (1–31 Oktober 2026)
+              </h2>
+              <p className="text-2xs text-slate-500 mt-0.5">
+                Dinamika harian penjualan, perolehan leads, dan volume incoming chat.
+              </p>
+            </div>
+
+            {/* Metric Switcher */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setDailyMetric('revenue')}
+                className={`px-2.5 py-1 text-2xs font-semibold rounded-md transition ${
+                  dailyMetric === 'revenue' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Penjualan (Rp)
+              </button>
+              <button
+                type="button"
+                onClick={() => setDailyMetric('chats')}
+                className={`px-2.5 py-1 text-2xs font-semibold rounded-md transition ${
+                  dailyMetric === 'chats' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Chats
+              </button>
+              <button
+                type="button"
+                onClick={() => setDailyMetric('leads')}
+                className={`px-2.5 py-1 text-2xs font-semibold rounded-md transition ${
+                  dailyMetric === 'leads' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Leads
+              </button>
+              <button
+                type="button"
+                onClick={() => setDailyMetric('aov')}
+                className={`px-2.5 py-1 text-2xs font-semibold rounded-md transition ${
+                  dailyMetric === 'aov' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                AOV
+              </button>
             </div>
           </div>
 
-          <p className="text-2xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
-            Input belum tersedia ditampilkan sebagai “—”, bukan nol. Nilai baseline tidak menjadi realisasi November.
-          </p>
-        </section>
-      </div>
+          {/* SVG Bar Chart Visualization */}
+          <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/80">
+            <div className="h-44 w-full flex items-end gap-1 sm:gap-1.5 pt-6 pb-2">
+              {HAPPINESS_DAILY_TRAFFIC.map((d) => {
+                const val =
+                  dailyMetric === 'revenue'
+                    ? d.revenue
+                    : dailyMetric === 'chats'
+                    ? d.chats
+                    : dailyMetric === 'leads'
+                    ? d.leads
+                    : d.aov;
+                const heightPct = dailyMaxVal > 0 ? (val / dailyMaxVal) * 100 : 0;
+                const isSpike = !!d.highlight;
 
-      {/* 4. Perbandingan & Target KPI Panel */}
-      <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card" aria-label="Baseline dan target KPI November">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Perbandingan &amp; target KPI</h2>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-2xs font-semibold bg-[#e6f4ee] text-[#127a60] border border-emerald-200">
-            Skema November · usulan
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/90 text-slate-600 text-2xs uppercase tracking-wider font-semibold border-b border-slate-200/90">
-              <tr>
-                <th scope="col" className="py-3 px-4">Komponen</th>
-                <th scope="col" className="py-3 px-3 text-right">Bobot</th>
-                <th scope="col" className="py-3 px-3">Baseline Oktober</th>
-                <th scope="col" className="py-3 px-3">Target November</th>
-                <th scope="col" className="py-3 px-3 text-right">Actual Nov</th>
-                <th scope="col" className="py-3 px-4 text-right">Skor</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-3 px-4 font-bold text-slate-900">Revenue attribution</td>
-                <td className="py-3 px-3 text-right font-medium tabular-nums">30%</td>
-                <td className="py-3 px-3 tabular-nums">{formatCurrencyIDR(53275260)}</td>
-                <td className="py-3 px-3 tabular-nums">{formatCurrencyIDR(53275260)}</td>
-                <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
-                <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-3 px-4 font-bold text-slate-900">Traffic acquisition</td>
-                <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
-                <td className="py-3 px-3">448 chats*</td>
-                <td className="py-3 px-3">448 unique chats valid</td>
-                <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
-                <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-3 px-4 font-bold text-slate-900">Total campaign</td>
-                <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
-                <td className="py-3 px-3">28 entri*</td>
-                <td className="py-3 px-3">28 campaign valid</td>
-                <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
-                <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-3 px-4 font-bold text-slate-900">Paid promote</td>
-                <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
-                <td className="py-3 px-3 text-slate-500">Belum terpisah</td>
-                <td className="py-3 px-3 font-semibold text-[#127a60]">ROAS 1,5×</td>
-                <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
-                <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
-              </tr>
-              <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-3 px-4 font-bold text-slate-900">Engagement &amp; activation</td>
-                <td className="py-3 px-3 text-right font-medium tabular-nums">10%</td>
-                <td className="py-3 px-3 text-slate-500">Belum tersedia</td>
-                <td className="py-3 px-3">100% rencana disetujui</td>
-                <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
-                <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <p className="text-2xs text-slate-500 mt-3">
-          *Traffic dinilai berdasarkan unique incoming chats valid. Campaign dinilai setelah memenuhi kriteria pelaksanaan dan evaluasi.
-        </p>
-
-        {/* Collapsible 10 Indicators */}
-        <div ref={scoringRef} className="mt-4 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() => setIsScoringOpen(!isScoringOpen)}
-            className="flex items-center justify-between w-full text-left text-xs font-semibold text-[#127a60] hover:text-emerald-800 transition py-1 cursor-pointer focus:outline-none"
-          >
-            <span className="flex items-center gap-1.5">
-              Rincian 10 indikator &amp; kebutuhan data
-            </span>
-            {isScoringOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </button>
-
-          {isScoringOpen && (
-            <div className="mt-3 overflow-x-auto bg-slate-50/60 rounded-xl border border-slate-200/80 p-3">
-              <table className="w-full text-left text-xs text-slate-700">
-                <thead className="text-2xs uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th scope="col" className="py-2.5 px-3">Indikator</th>
-                    <th scope="col" className="py-2.5 px-3 text-right">Bobot</th>
-                    <th scope="col" className="py-2.5 px-3">Data penilaian yang dibutuhkan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200/60">
-                  {HAPPINESS_10_INDICATORS.map((ind, i) => (
-                    <tr key={i} className="hover:bg-white/80 transition">
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">{ind.name}</td>
-                      <td className="py-2.5 px-3 text-right font-medium tabular-nums">{ind.bobotPct}%</td>
-                      <td className="py-2.5 px-3 text-slate-600 text-xs">{ind.dataRequirements}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="text-2xs text-slate-500 mt-2.5 pt-2 border-t border-slate-200">
-                Skor kuantitatif = min(actual ÷ target, 120%) × bobot. Metode planning/evaluasi dan rubrik efisiensi perlu disepakati. Paid revenue sudah termasuk dalam total revenue attribution.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 5. 2-Column Grid: Top 5 Campaigns & Bonus Revenue Growth */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Panel 1: Top 5 Campaigns Ranking */}
-        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Campaign dengan revenue terbesar</h2>
-              <span className="text-2xs text-slate-500 font-medium">5 baris teratas</span>
-            </div>
-
-            <div className="space-y-3.5">
-              {top5Campaigns.map((camp, idx) => {
-                const pct = (camp.revenue / grandTotals.revenue) * 100;
                 return (
-                  <div key={camp.id} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-slate-800 truncate max-w-[70%]">
-                        {idx + 1}. {camp.name}
-                      </span>
-                      <span className="font-bold text-slate-900 tabular-nums">
-                        {formatCurrencyIDR(camp.revenue)}
-                      </span>
+                  <div
+                    key={d.day}
+                    className="flex-1 h-full flex flex-col justify-end items-center group relative cursor-pointer"
+                  >
+                    {/* Tooltip on Hover */}
+                    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-44">
+                      <div className="bg-slate-900 text-white text-3xs rounded-lg p-2 shadow-xl border border-slate-700 leading-tight">
+                        <div className="font-bold text-amber-300 mb-0.5">{d.date}</div>
+                        {d.highlight && <div className="text-emerald-300 font-semibold mb-1">★ {d.highlight}</div>}
+                        <div>Omzet: <strong className="tabular-nums">{formatCurrencyIDR(d.revenue)}</strong></div>
+                        <div>Chats: <strong className="tabular-nums">{d.chats}</strong> · Leads: <strong className="tabular-nums">{d.leads}</strong></div>
+                        <div>Paid: <strong className="tabular-nums">{d.paid}</strong> · AOV: <strong className="tabular-nums">{formatCurrencyIDR(d.aov)}</strong></div>
+                      </div>
+                      <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
                     </div>
+
+                    {/* Bar */}
                     <div
-                      className="h-2 rounded-full bg-slate-100 overflow-hidden"
-                      role="img"
-                      aria-label={`${camp.name}: ${formatPercent(pct / 100, 2)} dari total revenue`}
-                    >
-                      <div
-                        className="h-full bg-[#127a60] rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
+                      style={{ height: `${Math.max(heightPct, 6)}%` }}
+                      className={`w-full rounded-t-sm transition-all ${
+                        isSpike
+                          ? 'bg-amber-500 hover:bg-amber-600'
+                          : dailyMetric === 'revenue'
+                          ? 'bg-[#127a60] hover:bg-emerald-700'
+                          : dailyMetric === 'chats'
+                          ? 'bg-sky-600 hover:bg-sky-700'
+                          : dailyMetric === 'leads'
+                          ? 'bg-purple-600 hover:bg-purple-700'
+                          : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
+                    />
+                    <span className="text-[10px] text-slate-500 mt-1 font-mono">{d.day}</span>
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          <p className="text-2xs text-slate-500 mt-4 pt-3 border-t border-slate-100">
-            Porsi kontribusi terhadap total revenue attribution.
-          </p>
-        </section>
-
-        {/* Panel 2: Bonus Revenue Growth */}
-        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-3.5">
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Bonus revenue growth</h2>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-                Di luar KPI
+            <div className="flex items-center justify-between text-2xs text-slate-500 pt-2 border-t border-slate-200">
+              <span className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-xs bg-[#127a60]" /> Nilai Harian Reguler
+                <span className="w-2.5 h-2.5 rounded-xs bg-amber-500 ml-2" /> Puncak Kampanye / Spike Event
               </span>
+              <span>Total Periode: {formatCurrencyIDR(grandTotals.revenue)} ({grandTotals.chats} Chats · {grandTotals.leads} Leads · {grandTotals.paid} Paid)</span>
             </div>
-
-            <div className="divide-y divide-slate-100 text-xs">
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-slate-600">Baseline Oktober</span>
-                <strong className="text-slate-900 font-bold tabular-nums">
-                  {formatCurrencyIDR(53275260)}
-                </strong>
-              </div>
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-slate-600">Syarat growth</span>
-                <strong className="text-slate-900 font-bold">≥30% MoM</strong>
-              </div>
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-slate-600">Ambang November</span>
-                <strong className="text-slate-900 font-bold tabular-nums">
-                  {formatCurrencyIDR(69257838)}
-                </strong>
-              </div>
-              <div className="py-2.5 flex items-center justify-between">
-                <span className="text-slate-600">Actual November</span>
-                <strong className="text-slate-400 font-mono font-bold">—</strong>
-              </div>
-            </div>
-
-            <p className="text-xs font-semibold text-[#8c5e18] mt-3">
-              Kelayakan bonus belum dapat dinilai.
-            </p>
           </div>
 
-          <p className="text-2xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
-            Revenue harus paid, tervalidasi, tanpa double attribution, tracking konsisten, serta budget paid promote disetujui. Nominal bonus ditetapkan manajemen.
-          </p>
+          {/* Daily Table Summary */}
+          <div className="overflow-x-auto max-h-72 border border-slate-200 rounded-xl">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 sticky top-0 text-2xs uppercase tracking-wider text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">Tanggal</th>
+                  <th className="py-2.5 px-3">Highlight Kampanye</th>
+                  <th className="py-2.5 px-3 text-right">Incoming Chats</th>
+                  <th className="py-2.5 px-3 text-right">Leads</th>
+                  <th className="py-2.5 px-3 text-right">Paid Orders</th>
+                  <th className="py-2.5 px-3 text-right">AOV</th>
+                  <th className="py-2.5 px-3 text-right">Penjualan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {HAPPINESS_DAILY_TRAFFIC.map((d) => (
+                  <tr key={d.day} className={`hover:bg-slate-50/80 transition ${d.highlight ? 'bg-amber-50/30' : ''}`}>
+                    <td className="py-2 px-3 font-mono font-medium text-slate-800">{d.date}</td>
+                    <td className="py-2 px-3">
+                      {d.highlight ? (
+                        <span className="inline-flex items-center gap-1 text-3xs font-semibold px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                          {d.highlight}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 text-3xs">—</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-right tabular-nums">{d.chats}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{d.leads}</td>
+                    <td className="py-2 px-3 text-right tabular-nums font-semibold text-emerald-700">{d.paid}</td>
+                    <td className="py-2 px-3 text-right tabular-nums">{formatCurrencyIDR(d.aov)}</td>
+                    <td className="py-2 px-3 text-right tabular-nums font-bold text-slate-900">{formatCurrencyIDR(d.revenue)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
-      </div>
+      )}
 
-      {/* 6. Performa Campaign Table Panel with Filter, Pager & Detail Drawer */}
+      {/* VIEW 3: AFTER-SALES & UPSELL WACOMMERCE (REQ TRI) */}
+      {activeView === 'aftersales' && (
+        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <Package className="w-4 h-4 text-purple-700" />
+                After-Sales Pipeline &amp; Upselling (WACommerce)
+              </h2>
+              <p className="text-2xs text-slate-500 mt-0.5">
+                Maintain pesanan aktif via WACommerce: edukasi resi paket + penawaran promo repeat order.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-2xs text-slate-600 font-medium">Filter Paket:</span>
+              <select
+                aria-label="Filter Status Paket After-Sales"
+                value={aftersalesFilter}
+                onChange={(e) => setAftersalesFilter(e.target.value as any)}
+                className="py-1 px-2.5 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#127a60]"
+              >
+                <option value="all">Semua Status ({HAPPINESS_AFTERSALES_DATA.totalTickets})</option>
+                <option value="akan_dikirim">Akan Dikirim ({HAPPINESS_AFTERSALES_DATA.akanDikirimCount})</option>
+                <option value="sedang_dikirim">Sedang Dikirim ({HAPPINESS_AFTERSALES_DATA.sedangDikirimCount})</option>
+                <option value="sudah_diterima">Sudah Diterima ({HAPPINESS_AFTERSALES_DATA.sudahDiterimaCount})</option>
+              </select>
+            </div>
+          </div>
+
+          {/* After-Sales Funnel Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-purple-50/60 rounded-xl p-3.5 border border-purple-100">
+              <span className="text-2xs text-purple-800 font-semibold block">Total Paket Dimaintain</span>
+              <div className="text-lg font-bold text-slate-900 mt-0.5 tabular-nums">
+                {HAPPINESS_AFTERSALES_DATA.totalTickets} Paket
+              </div>
+              <p className="text-3xs text-slate-600 mt-0.5">Pesanan aktif di sistem WACommerce</p>
+            </div>
+
+            <div className="bg-blue-50/60 rounded-xl p-3.5 border border-blue-100">
+              <span className="text-2xs text-blue-800 font-semibold block">Ditawari Promo Baru</span>
+              <div className="text-lg font-bold text-slate-900 mt-0.5 tabular-nums">
+                {HAPPINESS_AFTERSALES_DATA.offeredPromoCount} Cust
+              </div>
+              <p className="text-3xs text-slate-600 mt-0.5">84,9% tingkat follow-up penawaran</p>
+            </div>
+
+            <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-100">
+              <span className="text-2xs text-emerald-800 font-semibold block">Closing Repeat Won (Upsell)</span>
+              <div className="text-lg font-bold text-emerald-800 mt-0.5 tabular-nums">
+                {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Closing
+              </div>
+              <p className="text-3xs text-emerald-700 mt-0.5">
+                Konversi: <strong className="font-semibold">{formatPercent(HAPPINESS_AFTERSALES_DATA.upsellConversionPct / 100, 1)}</strong>
+              </p>
+            </div>
+
+            <div className="bg-amber-50/60 rounded-xl p-3.5 border border-amber-100">
+              <span className="text-2xs text-amber-800 font-semibold block">Omzet Hasil Upsell</span>
+              <div className="text-lg font-bold text-slate-900 mt-0.5 tabular-nums">
+                {formatCurrencyIDR(HAPPINESS_AFTERSALES_DATA.totalUpsellRevenue)}
+              </div>
+              <p className="text-3xs text-slate-600 mt-0.5">AOV Repeat: {formatCurrencyIDR(HAPPINESS_AFTERSALES_DATA.upsellAov)}</p>
+            </div>
+          </div>
+
+          {/* Active Ticket Log Table */}
+          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-2xs uppercase tracking-wider text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th className="py-2.5 px-3">No. Order / Tiket</th>
+                  <th className="py-2.5 px-3">Customer</th>
+                  <th className="py-2.5 px-3">Status Paket &amp; Ekspedisi</th>
+                  <th className="py-2.5 px-3">Respon Upsell / Penawaran Promo</th>
+                  <th className="py-2.5 px-3 text-right">Nilai Closing</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredTickets.map((t) => {
+                  const badge = getPackageStatusBadge(t.packageStatus);
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/80 transition">
+                      <td className="py-2.5 px-3">
+                        <div className="font-semibold text-slate-900">{t.orderNumber}</div>
+                        <span className="text-3xs text-slate-400 font-mono">{t.id} · {t.lastUpdated}</span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-medium text-slate-800">{t.customerName}</span>
+                        <div className="text-3xs text-slate-500">{t.channel}</div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`inline-flex items-center gap-1 text-3xs font-semibold px-2 py-0.5 rounded-full border ${badge.cls}`}>
+                          {badge.icon}
+                          {badge.label}
+                        </span>
+                        <div className="text-3xs text-slate-500 mt-0.5">{t.courier}</div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {t.upsellStatus === 'closing' ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1 text-3xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Closing Promo Baru
+                            </span>
+                            <div className="text-3xs text-slate-600 mt-0.5">{t.upsellCampaign}</div>
+                          </div>
+                        ) : t.upsellStatus === 'followup' ? (
+                          <span className="inline-flex items-center gap-1 text-3xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                            <Clock className="w-3 h-3 text-blue-600" /> Dalam Follow-up
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-3xs">Belum Berminat</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-bold text-slate-900 tabular-nums">
+                        {t.upsellRevenue > 0 ? (
+                          <span className="text-emerald-700">{formatCurrencyIDR(t.upsellRevenue)}</span>
+                        ) : (
+                          <span className="text-slate-400 font-normal">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* VIEW 4: RUBRIC & 10 INDIKATOR KPI */}
+      {activeView === 'rubric' && (
+        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card space-y-4" ref={scoringRef}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                <ListChecks className="w-4 h-4 text-[#127a60]" />
+                Perbandingan &amp; Target KPI (10 Indikator)
+              </h2>
+              <p className="text-2xs text-slate-500 mt-0.5">
+                Skema penilaian performa Tri Customer Happiness sesuai Brief Panduan Operasional.
+              </p>
+            </div>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-2xs font-semibold bg-[#e6f4ee] text-[#127a60] border border-emerald-200">
+              Skema November · Usulan
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-50 text-slate-600 text-2xs uppercase tracking-wider font-semibold border-b border-slate-200">
+                <tr>
+                  <th scope="col" className="py-3 px-4">Komponen</th>
+                  <th scope="col" className="py-3 px-3 text-right">Bobot</th>
+                  <th scope="col" className="py-3 px-3">Baseline Oktober</th>
+                  <th scope="col" className="py-3 px-3">Target November</th>
+                  <th scope="col" className="py-3 px-3 text-right">Actual Nov</th>
+                  <th scope="col" className="py-3 px-4 text-right">Skor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                <tr className="hover:bg-slate-50/60 transition">
+                  <td className="py-3 px-4 font-bold text-slate-900">Revenue Attribution</td>
+                  <td className="py-3 px-3 text-right font-medium tabular-nums">30%</td>
+                  <td className="py-3 px-3 tabular-nums">{formatCurrencyIDR(53275260)}</td>
+                  <td className="py-3 px-3 tabular-nums">{formatCurrencyIDR(53275260)}</td>
+                  <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
+                  <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
+                </tr>
+                <tr className="hover:bg-slate-50/60 transition">
+                  <td className="py-3 px-4 font-bold text-slate-900">Traffic Acquisition</td>
+                  <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
+                  <td className="py-3 px-3">448 chats*</td>
+                  <td className="py-3 px-3">448 unique chats valid</td>
+                  <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
+                  <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
+                </tr>
+                <tr className="hover:bg-slate-50/60 transition">
+                  <td className="py-3 px-4 font-bold text-slate-900">Total Campaign</td>
+                  <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
+                  <td className="py-3 px-3">28 entri*</td>
+                  <td className="py-3 px-3">28 campaign valid</td>
+                  <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
+                  <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
+                </tr>
+                <tr className="hover:bg-slate-50/60 transition">
+                  <td className="py-3 px-4 font-bold text-slate-900">Paid Promote</td>
+                  <td className="py-3 px-3 text-right font-medium tabular-nums">20%</td>
+                  <td className="py-3 px-3 text-slate-500">Belum terpisah</td>
+                  <td className="py-3 px-3 font-semibold text-[#127a60]">ROAS 1,5×</td>
+                  <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
+                  <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
+                </tr>
+                <tr className="hover:bg-slate-50/60 transition">
+                  <td className="py-3 px-4 font-bold text-slate-900">Engagement &amp; Activation</td>
+                  <td className="py-3 px-3 text-right font-medium tabular-nums">10%</td>
+                  <td className="py-3 px-3 text-slate-500">Belum tersedia</td>
+                  <td className="py-3 px-3">100% rencana disetujui</td>
+                  <td className="py-3 px-3 text-right text-slate-400 font-mono">—</td>
+                  <td className="py-3 px-4 text-right text-slate-400 font-mono">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* 10 Detailed Rubric Table */}
+          <div className="bg-slate-50/70 rounded-xl border border-slate-200/80 p-3.5 mt-3">
+            <h3 className="text-xs font-bold text-slate-900 mb-2">Rincian Kebutuhan Data 10 Indikator</h3>
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="text-2xs uppercase tracking-wider text-slate-500 font-semibold border-b border-slate-200">
+                <tr>
+                  <th scope="col" className="py-2 px-3">Indikator</th>
+                  <th scope="col" className="py-2 px-3 text-right">Bobot</th>
+                  <th scope="col" className="py-2 px-3">Data Penilaian yang Dibutuhkan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200/60">
+                {HAPPINESS_10_INDICATORS.map((ind, i) => (
+                  <tr key={i} className="hover:bg-white/80 transition">
+                    <td className="py-2.5 px-3 font-semibold text-slate-900">{ind.name}</td>
+                    <td className="py-2.5 px-3 text-right font-medium tabular-nums">{ind.bobotPct}%</td>
+                    <td className="py-2.5 px-3 text-slate-600 text-xs">{ind.dataRequirements}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* 5. Performa Campaign Table Panel with Sub-Channel Filter, AOV, Pager & Detail Drawer */}
       <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card" id="hp-campaign-section">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Performa campaign</h2>
-            <p className="text-2xs text-slate-500 mt-0.5">28 entri campaign/channel</p>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Performa Seluruh Campaign</h2>
+            <p className="text-2xs text-slate-500 mt-0.5">
+              Menampilkan {filteredRows.length} campaign · Termasuk metrik AOV &amp; Sub-Channel
+            </p>
           </div>
 
-          {/* Channel Filter */}
+          {/* Sub-Channel Filter */}
           <div className="flex items-center gap-2">
             <label htmlFor="hp-channel-filter" className="text-xs text-slate-600 font-medium">
-              Channel:
+              Sub-Channel:
             </label>
             <select
               id="hp-channel-filter"
-              value={selectedChannel}
+              value={selectedSubChannel}
               onChange={(e) => {
-                setSelectedChannel(e.target.value as 'all' | 'custom' | 'instagram');
+                setSelectedSubChannel(e.target.value as any);
                 setPage(0);
                 setSelectedCampaignId(null);
               }}
               className="py-1.5 px-3 text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#127a60] cursor-pointer"
             >
-              <option value="all">Semua channel</option>
-              <option value="custom">Custom</option>
-              <option value="instagram">Instagram</option>
+              <option value="all">Semua Sub-Channel ({HAPPINESS_CAMPAIGN_ROWS.length})</option>
+              <option value="ScentplusClub">ScentplusClub / SC (12)</option>
+              <option value="Instagram">Instagram (10)</option>
+              <option value="Threads">Threads (4)</option>
+              <option value="TikTok">TikTok (2)</option>
+              <option value="StoryWA">Story WA (2)</option>
             </select>
           </div>
         </div>
@@ -599,10 +1064,14 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50/90 text-slate-600 text-2xs uppercase tracking-wider font-semibold border-b border-slate-200/90">
               <tr>
-                <th scope="col" className="py-3 px-4">Campaign / channel</th>
+                <th scope="col" className="py-3 px-3">ID</th>
+                <th scope="col" className="py-3 px-4">Nama Campaign</th>
+                <th scope="col" className="py-3 px-3">Sub-Channel</th>
+                <th scope="col" className="py-3 px-3">Jadwal</th>
                 <th scope="col" className="py-3 px-3 text-right">Chats</th>
                 <th scope="col" className="py-3 px-3 text-right">Leads</th>
                 <th scope="col" className="py-3 px-3 text-right">Paid</th>
+                <th scope="col" className="py-3 px-3 text-right">AOV</th>
                 <th scope="col" className="py-3 px-4 text-right">Revenue</th>
               </tr>
             </thead>
@@ -612,59 +1081,64 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
                 return (
                   <tr
                     key={r.id}
-                    className={`transition ${isSelected ? 'bg-emerald-50/70' : 'hover:bg-slate-50/80'}`}
+                    onClick={() => setSelectedCampaignId(isSelected ? null : r.id)}
+                    className={`cursor-pointer transition ${
+                      isSelected
+                        ? 'bg-emerald-50/80 font-medium'
+                        : 'hover:bg-slate-50/60'
+                    }`}
                   >
-                    <td className="py-3 px-4">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedCampaignId(isSelected ? null : r.id)}
-                        className="text-left font-semibold text-slate-900 hover:text-[#127a60] underline underline-offset-3 decoration-slate-300 hover:decoration-[#127a60] transition cursor-pointer"
-                      >
-                        {r.name}
-                      </button>
-                      <div className="text-2xs text-slate-500 mt-0.5">
-                        {r.channel} · {r.schedule || 'Jadwal belum tersedia'}
-                      </div>
+                    <td className="py-3 px-3 font-mono text-slate-400 text-3xs">#{r.id}</td>
+                    <td className="py-3 px-4 font-semibold text-slate-900 max-w-[220px] truncate" title={r.name}>
+                      {r.name}
                     </td>
-                    <td className="py-3 px-3 text-right tabular-nums text-slate-700">{r.chats}</td>
-                    <td className="py-3 px-3 text-right tabular-nums text-slate-700">{r.leads}</td>
-                    <td className="py-3 px-3 text-right tabular-nums text-slate-700">{r.paid}</td>
-                    <td className="py-3 px-4 text-right tabular-nums font-bold text-slate-900">
+                    <td className="py-3 px-3">
+                      <span className={`px-2 py-0.5 rounded text-3xs font-semibold border ${getSubChannelBadge(r.subChannel)}`}>
+                        {r.subChannel}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-slate-500 text-3xs">
+                      {r.schedule ? r.schedule : <span className="text-slate-400">Berkelanjutan</span>}
+                    </td>
+                    <td className="py-3 px-3 text-right tabular-nums">{r.chats}</td>
+                    <td className="py-3 px-3 text-right tabular-nums">{r.leads}</td>
+                    <td className="py-3 px-3 text-right tabular-nums font-semibold text-emerald-700">{r.paid}</td>
+                    <td className="py-3 px-3 text-right tabular-nums text-indigo-700 font-medium">
+                      {r.aov > 0 ? formatCurrencyIDR(r.aov) : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-right font-bold text-slate-900 tabular-nums">
                       {formatCurrencyIDR(r.revenue)}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
-            {/* Table Footer Totals */}
-            <tfoot className="bg-slate-50/90 font-semibold border-t-2 border-slate-300 text-slate-900">
+            <tfoot className="bg-slate-50/80 text-slate-900 font-bold text-xs border-t border-slate-200">
               <tr>
-                <td className="py-3 px-4">
-                  Total pilihan · {filteredRows.length} baris
+                <td colSpan={4} className="py-3 px-4 text-left">
+                  Total {selectedSubChannel === 'all' ? 'Seluruh Campaign' : selectedSubChannel}
                 </td>
-                <td className="py-3 px-3 text-right tabular-nums font-mono">{filteredTotals.chats}</td>
-                <td className="py-3 px-3 text-right tabular-nums font-mono">{filteredTotals.leads}</td>
-                <td className="py-3 px-3 text-right tabular-nums font-mono">{filteredTotals.paid}</td>
-                <td className="py-3 px-4 text-right tabular-nums font-mono font-bold text-slate-900">
-                  {formatCurrencyIDR(filteredTotals.revenue)}
-                </td>
+                <td className="py-3 px-3 text-right tabular-nums">{filteredTotals.chats}</td>
+                <td className="py-3 px-3 text-right tabular-nums">{filteredTotals.leads}</td>
+                <td className="py-3 px-3 text-right tabular-nums text-emerald-800">{filteredTotals.paid}</td>
+                <td className="py-3 px-3 text-right tabular-nums text-indigo-800">{formatCurrencyIDR(filteredTotals.aov)}</td>
+                <td className="py-3 px-4 text-right tabular-nums text-[#127a60]">{formatCurrencyIDR(filteredTotals.revenue)}</td>
               </tr>
             </tfoot>
           </table>
         </div>
 
-        {/* Pager Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-100">
-          <span className="text-2xs text-slate-500" aria-live="polite">
-            {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, filteredRows.length)} dari {filteredRows.length} baris · halaman {currentPage + 1}/{totalPages}
+        {/* Pager */}
+        <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100 text-xs text-slate-600">
+          <span>
+            Halaman {currentPage + 1} dari {totalPages}
           </span>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               disabled={currentPage === 0}
               onClick={() => setPage((p) => Math.max(0, p - 1))}
-              className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              aria-label="Halaman sebelumnya"
+              className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200"
             >
               Sebelumnya
             </button>
@@ -672,108 +1146,55 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
               type="button"
               disabled={currentPage >= totalPages - 1}
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              aria-label="Halaman berikutnya"
+              className="px-2.5 py-1 text-xs font-semibold rounded bg-slate-50 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed border border-slate-200"
             >
-              Berikutnya
+              Selanjutnya
             </button>
           </div>
         </div>
 
-        {/* Campaign Detail Drawer (When clicked) */}
+        {/* Selected Campaign Drawer Detail */}
         {selectedCampaign && (
-          <div className="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200/90 text-xs transition" aria-live="polite">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-sm text-slate-900">{selectedCampaign.name}</h3>
-              <button
-                type="button"
-                onClick={() => setSelectedCampaignId(null)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-2xs font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>Tutup detail</span>
-              </button>
+          <div className="mt-4 p-4 bg-emerald-50/50 rounded-xl border border-emerald-200/80 relative">
+            <button
+              type="button"
+              aria-label="Tutup detail campaign"
+              onClick={() => setSelectedCampaignId(null)}
+              className="absolute top-3 right-3 text-slate-400 hover:text-slate-700 p-1 rounded-md"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-2 py-0.5 rounded text-3xs font-bold border ${getSubChannelBadge(selectedCampaign.subChannel)}`}>
+                {selectedCampaign.subChannel}
+              </span>
+              <h3 className="text-sm font-bold text-slate-900">{selectedCampaign.name}</h3>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 mt-3.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mt-3 pt-3 border-t border-emerald-200/60">
               <div>
-                <span className="block text-2xs text-slate-500">ID campaign</span>
-                <span className="font-semibold text-slate-800 font-mono">
-                  CH-{String(selectedCampaign.id).padStart(3, '0')}
-                </span>
+                <span className="text-slate-500 text-3xs block">Revenue:</span>
+                <strong className="text-slate-900 font-bold">{formatCurrencyIDR(selectedCampaign.revenue)}</strong>
               </div>
               <div>
-                <span className="block text-2xs text-slate-500">Status campaign</span>
-                <span className="font-semibold text-emerald-800">
-                  {selectedCampaign.status === 'active' ? 'Aktif' : selectedCampaign.status}
-                </span>
+                <span className="text-slate-500 text-3xs block">AOV:</span>
+                <strong className="text-indigo-700 font-bold">{selectedCampaign.aov > 0 ? formatCurrencyIDR(selectedCampaign.aov) : '—'}</strong>
               </div>
               <div>
-                <span className="block text-2xs text-slate-500">Jadwal campaign</span>
-                <span className="font-semibold text-slate-800">
-                  {selectedCampaign.schedule || 'Belum dijadwalkan'}
-                </span>
+                <span className="text-slate-500 text-3xs block">Paid Orders:</span>
+                <strong className="text-emerald-700 font-bold">{selectedCampaign.paid}</strong>
               </div>
               <div>
-                <span className="block text-2xs text-slate-500">Channel</span>
-                <span className="font-semibold text-slate-800 capitalize">{selectedCampaign.channel}</span>
+                <span className="text-slate-500 text-3xs block">Chats / Leads:</span>
+                <strong className="text-slate-900 font-bold">{selectedCampaign.chats} / {selectedCampaign.leads}</strong>
               </div>
               <div>
-                <span className="block text-2xs text-slate-500">Chats / Leads / Paid</span>
-                <span className="font-semibold text-slate-800 tabular-nums">
-                  {selectedCampaign.chats} / {selectedCampaign.leads} / {selectedCampaign.paid}
-                </span>
-              </div>
-              <div>
-                <span className="block text-2xs text-slate-500">Revenue attribution</span>
-                <span className="font-bold text-emerald-800 tabular-nums">
-                  {formatCurrencyIDR(selectedCampaign.revenue)}
-                </span>
+                <span className="text-slate-500 text-3xs block">Jadwal:</span>
+                <span className="text-slate-700 font-mono text-3xs">{selectedCampaign.schedule || 'Berkelanjutan'}</span>
               </div>
             </div>
           </div>
         )}
-
-        <p className="text-2xs text-slate-500 mt-3 pt-3 border-t border-slate-100">
-          Filter berlaku pada daftar campaign. Ringkasan menampilkan seluruh channel pada periode laporan.
-        </p>
       </section>
-
-      {/* 7. Monitoring KPI (Tindak Lanjut) */}
-      <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card" id="hp-validation">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-bold text-slate-900 tracking-tight">Monitoring KPI</h2>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-2xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-            Tindak lanjut
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="border-l-2 border-[#127a60] pl-3 py-1">
-            <strong className="block text-xs font-bold text-slate-900 mb-1">Paid promote</strong>
-            <p className="text-2xs text-slate-600 leading-relaxed">
-              ROAS dan CPL ditampilkan setelah biaya aktual, paid revenue, dan valid paid leads tersedia.
-            </p>
-          </div>
-          <div className="border-l-2 border-[#597c9a] pl-3 py-1">
-            <strong className="block text-xs font-bold text-slate-900 mb-1">Aktivasi channel</strong>
-            <p className="text-2xs text-slate-600 leading-relaxed">
-              Pantau realisasi community, social media, dan CTA terhadap kalender aktivitas yang disetujui.
-            </p>
-          </div>
-          <div className="border-l-2 border-amber-400 pl-3 py-1">
-            <strong className="block text-xs font-bold text-slate-900 mb-1">Evaluasi campaign</strong>
-            <p className="text-2xs text-slate-600 leading-relaxed">
-              Lengkapi objective, materi, CTA, tracking, bukti pelaksanaan, hasil, dan tindak lanjut.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Module Footer */}
-      <div className="text-2xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
-        <span>Tri: akuisisi &amp; campaign · CS Sales: handling &amp; closing</span>
-        <span>Pratinjau modul · data contoh</span>
-      </div>
     </div>
   );
 };
