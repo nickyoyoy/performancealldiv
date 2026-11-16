@@ -13,7 +13,6 @@ import {
   XCircle,
   Percent,
   Crown,
-  RefreshCw,
   Calendar,
   ArrowUpRight,
 } from 'lucide-react';
@@ -40,9 +39,6 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
     { key: '2026-08', label: 'Agustus 2026' },
   ],
   dataSource = 'live',
-  syncedAt,
-  isSyncing = false,
-  onRefreshLive,
 }) => {
   // Compute column totals for table footer
   const totalPoin = summary.csList.reduce((acc, c) => acc + c.poin, 0);
@@ -72,7 +68,6 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
               <span className="inline-flex items-center gap-1.5 text-2xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
                 {dataSource === 'live' ? 'WACOMMERCE Live REST API' : 'WACOMMERCE Local Snapshot'}
-                {syncedAt && <span className="text-emerald-700/70 font-normal">({syncedAt})</span>}
               </span>
             </div>
             <p className="text-2xs text-slate-500 mt-0.5 truncate">
@@ -99,19 +94,6 @@ export const CrmModule: React.FC<CrmModuleProps> = ({
                 ))}
               </select>
             </div>
-          )}
-
-          {onRefreshLive && (
-            <button
-              type="button"
-              onClick={onRefreshLive}
-              disabled={isSyncing}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#127a60] hover:bg-[#0e634e] rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer"
-              title="Tarik transaksi terbaru langsung dari server WACOMMERCE"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} aria-hidden="true" />
-              <span>{isSyncing ? 'Menyinkronkan...' : 'Sync Live'}</span>
-            </button>
           )}
 
           {/* Conversion Rate Team Badge */}
