@@ -1,9 +1,17 @@
 export default async function handler(req, res) {
   try {
-    const apiKey =
-      process.env.VITE_CRM_API_KEY ||
-      process.env.CRM_API_KEY ||
-      'nxk_live_jie3Zro3Fg4f9pRgdZDnwAK3';
+    const apiKey = process.env.VITE_CRM_API_KEY || process.env.CRM_API_KEY;
+
+    if (!apiKey) {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      return res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'VITE_CRM_API_KEY environment variable is not configured',
+        })
+      );
+    }
 
     const targetUrl = 'https://dashboard.wacommerce.id/api/public/v1/orders';
 

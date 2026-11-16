@@ -13,7 +13,13 @@ export default defineConfig({
         server.middlewares.use('/api/wacommerce', async (req, res) => {
           try {
             const subPath = (req.url || '/').replace(/^\//, '');
-            const apiKey = process.env.VITE_CRM_API_KEY || 'nxk_live_jie3Zro3Fg4f9pRgdZDnwAK3';
+            const apiKey = process.env.VITE_CRM_API_KEY || '';
+            if (!apiKey) {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(JSON.stringify({ ok: false, error: 'VITE_CRM_API_KEY not configured' }));
+              return;
+            }
             const targetUrl = `https://dashboard.wacommerce.id/api/public/v1/${subPath}`;
             const fetchRes = await fetch(targetUrl, {
               headers: {
