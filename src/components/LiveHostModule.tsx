@@ -24,7 +24,6 @@ import {
   ChevronRight,
   RefreshCw,
   AlertCircle,
-  Database,
   FileText,
   ArrowUpRight,
 } from 'lucide-react';
@@ -61,8 +60,8 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
   commissionParams,
   attendanceMap,
   onSelectHost,
-  sourceMode,
-  fetchedAt,
+  sourceMode: _sourceMode,
+  fetchedAt: _fetchedAt,
   onRefreshSheets,
   isRefreshing,
   onOpenSyncModal: _onOpenSyncModal,
@@ -109,23 +108,9 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
             <Mic2 className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
-                Komisi &amp; Bonus Live Host · {MONTH_LABEL_ID[month]} 2026
-              </h2>
-              <span
-                className={`text-3xs px-2 py-0.5 rounded-full font-semibold border inline-flex items-center gap-1 ${
-                  sourceMode === 'live'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
-                }`}
-              >
-                <Database className="w-2.5 h-2.5" aria-hidden="true" />
-                {sourceMode === 'live'
-                  ? `Live Sheets (${fetchedAt})`
-                  : `Snapshot (${fetchedAt || 'Siap'})`}
-              </span>
-            </div>
+            <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+              Komisi &amp; Bonus Live Host · {MONTH_LABEL_ID[month]} 2026
+            </h2>
             <p className="text-2xs text-slate-500 truncate mt-0.5">
               Sumber: ADS Tiktok (Pendapatan kotor &amp; Biaya) + Shopee JAN 26 (Siap Dikirim) + Ads Shopee.
             </p>
