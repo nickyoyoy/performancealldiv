@@ -20,7 +20,6 @@ import {
   MessagesSquare,
   UserCheck,
   Package,
-  Truck,
   PackageCheck,
   Layers,
   BarChart3,
@@ -190,29 +189,6 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
         return 'bg-slate-100 text-slate-800 border-slate-300';
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
-    }
-  };
-
-  const getPackageStatusBadge = (status: 'akan_dikirim' | 'sedang_dikirim' | 'sudah_diterima') => {
-    switch (status) {
-      case 'akan_dikirim':
-        return {
-          label: 'Akan Dikirim',
-          cls: 'bg-amber-50 text-amber-800 border-amber-200',
-          icon: <Clock className="w-3 h-3 text-amber-600" />,
-        };
-      case 'sedang_dikirim':
-        return {
-          label: 'Sedang Dikirim',
-          cls: 'bg-blue-50 text-blue-800 border-blue-200',
-          icon: <Truck className="w-3 h-3 text-blue-600" />,
-        };
-      case 'sudah_diterima':
-        return {
-          label: 'Sudah Diterima',
-          cls: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-          icon: <PackageCheck className="w-3 h-3 text-emerald-600" />,
-        };
     }
   };
 
@@ -865,14 +841,12 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
                 <tr>
                   <th className="py-2.5 px-3">No. Order / Tiket</th>
                   <th className="py-2.5 px-3">Customer</th>
-                  <th className="py-2.5 px-3">Status Paket &amp; Ekspedisi</th>
                   <th className="py-2.5 px-3">Respon Upsell / Penawaran Promo</th>
                   <th className="py-2.5 px-3 text-right">Nilai Closing</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredTickets.map((t) => {
-                  const badge = getPackageStatusBadge(t.packageStatus);
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/80 transition">
                       <td className="py-2.5 px-3">
@@ -882,13 +856,6 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
                       <td className="py-2.5 px-3">
                         <span className="font-medium text-slate-800">{t.customerName}</span>
                         <div className="text-3xs text-slate-500">{t.channel}</div>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className={`inline-flex items-center gap-1 text-3xs font-semibold px-2 py-0.5 rounded-full border ${badge.cls}`}>
-                          {badge.icon}
-                          {badge.label}
-                        </span>
-                        <div className="text-3xs text-slate-500 mt-0.5">{t.courier}</div>
                       </td>
                       <td className="py-2.5 px-3">
                         {t.upsellStatus === 'closing' ? (
