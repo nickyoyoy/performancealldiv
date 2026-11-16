@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden xl:flex items-center gap-3 bg-slate-50/90 border border-slate-200/80 px-3 py-1.5 rounded-xl text-2xs">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-blue-600 shrink-0" aria-hidden="true" />
-              <span className="text-slate-500">Omzet Divisi:</span>
+              <span className="text-slate-500">Omzet Lintas Divisi:</span>
               <strong className="text-slate-900 font-bold tabular-nums">
                 {formatCurrencyIDR(totalCompanyOmzet)}
               </strong>
