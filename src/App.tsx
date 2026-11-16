@@ -228,6 +228,23 @@ export const App: React.FC = () => {
     loadCrmData(false);
   }, []);
 
+  // Shopee OAuth Callback detector
+  const [shopeeAuthResult, setShopeeAuthResult] = useState<{ code: string; shop_id: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const shop_id = params.get('shop_id');
+      if (code && shop_id) {
+        setShopeeAuthResult({ code, shop_id });
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const crmSummary = useMemo(() => {
     if (crmOrders.length === 0) {
       return mockCrmSummary;
@@ -513,6 +530,39 @@ export const App: React.FC = () => {
         onExport={handleExport}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
       />
+
+      {shopeeAuthResult && (
+        <div className="bg-emerald-50 border-b border-emerald-200 px-4 py-2.5">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-emerald-900 font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>
+                Otorisasi Shopee Berhasil! Toko Shopee (ID: <strong>{shopeeAuthResult.shop_id}</strong>) telah tersambung.
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(`Shop ID: ${shopeeAuthResult.shop_id}\nAuth Code: ${shopeeAuthResult.code}`);
+                  alert('Detail otorisasi Shopee berhasil disalin ke clipboard!');
+                }}
+                className="px-2.5 py-1 rounded-md bg-[#127a60] hover:bg-[#0e634e] text-white font-semibold text-2xs transition shadow-xs cursor-pointer"
+              >
+                Salin Detail untuk Rizqy/Maul
+              </button>
+              <button
+                type="button"
+                onClick={() => setShopeeAuthResult(null)}
+                className="text-slate-400 hover:text-slate-600 text-xs px-1 cursor-pointer"
+                title="Tutup notifikasi"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <NavigationTabs
         activeTab={activeTab}
