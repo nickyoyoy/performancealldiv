@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Download,
   CheckCircle2,
-  FileSpreadsheet,
   TrendingUp,
   Wallet,
   Database,
@@ -83,18 +82,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Database className="w-3.5 h-3.5 text-[#127a60]" aria-hidden="true" />
             <span>Tab Sumber (7 Aktif)</span>
           </button>
-
-          {/* SSOT Sheet Link */}
-          <a
-            href="https://docs.google.com/spreadsheets/d/1PXarMDXbHSFtvAy1Luv1ch_A-vEZ0XngCHJ4cO0rzWk/edit?gid=0#gid=0"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-medium transition shadow-2xs"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
-            <span className="hidden sm:inline">Google Sheet SSOT</span>
-            <span className="sm:hidden">SSOT</span>
-          </a>
 
           {/* Export Button */}
           <button
