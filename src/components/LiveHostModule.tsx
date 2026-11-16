@@ -112,7 +112,7 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
               Komisi &amp; Bonus Live Host · {MONTH_LABEL_ID[month]} 2026
             </h2>
             <p className="text-2xs text-slate-500 truncate mt-0.5">
-              Sumber: ADS Tiktok (Pendapatan kotor &amp; Biaya) + Shopee JAN 26 (Siap Dikirim) + Ads Shopee.
+              Sumber: ADS Tiktok (Pendapatan kotor &amp; Biaya) + Shopee Live (Siap Dikirim) + Ads Shopee.
             </p>
           </div>
         </div>
@@ -160,7 +160,7 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
           <div>
             <b className="font-semibold">Data bulan {MONTH_LABEL_ID[month]} belum lengkap:</b>{' '}
             {!aggregate.hasTikTok && 'Data ADS Tiktok belum tersedia. '}
-            {!aggregate.hasShopee && 'Data Shopee Live (Shopee JAN 26) belum tersedia. '}
+            {!aggregate.hasShopee && 'Data Shopee Live (Siap Dikirim) belum tersedia. '}
             {aggregate.shopeeAdsTotal === null && 'Data Ads Shopee bulan ini belum tersedia.'}
           </div>
         </div>
