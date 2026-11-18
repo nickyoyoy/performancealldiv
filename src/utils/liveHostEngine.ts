@@ -266,7 +266,7 @@ export function allocateTargets(
     let reserved = 0;
     const auto: string[] = [];
     for (const h of hosts) {
-      const m = input.manual[h]?.[market];
+      const m = input.manual?.[h]?.[market];
       if (m !== undefined && m !== null && !isNaN(m)) {
         result[h][market] = m;
         result[h][srcKey] = 'manual';
