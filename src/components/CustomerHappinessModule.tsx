@@ -1,19 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { CustomerHappinessSummary } from '../types';
+import { CustomerHappinessSummary, DatePreset } from '../types';
 import {
   HAPPINESS_CAMPAIGN_ROWS,
   HAPPINESS_10_INDICATORS,
   HAPPINESS_DAILY_TRAFFIC,
   HAPPINESS_AFTERSALES_DATA,
+  HAPPINESS_AVAILABLE_DATES,
   HappinessSubChannel,
 } from '../data/customerHappinessData';
 import {
   formatCurrencyIDR,
   formatNumber,
   formatPercent,
+  formatDateWIB,
 } from '../utils/formatters';
+import { DateRangePicker } from './DateRangePicker';
 import {
-  CalendarDays,
   ListChecks,
   X,
   TrendingUp,
@@ -44,15 +46,51 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
   const [dailyMetric, setDailyMetric] = useState<'revenue' | 'chats' | 'leads' | 'aov'>('revenue');
   const [aftersalesFilter, setAftersalesFilter] = useState<'all' | 'akan_dikirim' | 'sedang_dikirim' | 'sudah_diterima'>('all');
 
+  // Date Range Filter State (Default to October 2026 baseline for Tri)
+  const [datePreset, setDatePreset] = useState<DatePreset>('prev_month');
+  const [startDate, setStartDate] = useState<string>('2026-10-01');
+  const [endDate, setEndDate] = useState<string>('2026-10-31');
 
+  const handleApplyDateRange = (start?: string, end?: string, preset?: DatePreset) => {
+    if (preset) setDatePreset(preset);
+    if (start) setStartDate(start);
+    if (end) setEndDate(end);
+    setPage(0);
+    setSelectedCampaignId(null);
+  };
 
-  // Filtered rows for the campaign table
+  // Helper to check if a campaign schedule overlaps with the selected date range
+  const isCampaignInPeriod = (schedule: string, sDate?: string, eDate?: string) => {
+    if (!sDate || !eDate) return true;
+    if (!schedule) return true; // Evergreen / ongoing campaign
+    const parts = schedule.split(' → ');
+    const cStart = parts[0]?.trim();
+    const cEnd = parts[1]?.trim() || cStart;
+    if (!cStart) return true;
+    return cStart <= eDate && cEnd >= sDate;
+  };
+
+  // Campaigns active in the selected date range
+  const periodCampaigns = useMemo(() => {
+    return HAPPINESS_CAMPAIGN_ROWS.filter((r) => isCampaignInPeriod(r.schedule, startDate, endDate));
+  }, [startDate, endDate]);
+
+  // Filtered rows for the campaign table (by sub-channel and period)
   const filteredRows = useMemo(() => {
-    return HAPPINESS_CAMPAIGN_ROWS.filter((r) => {
+    return periodCampaigns.filter((r) => {
       if (selectedSubChannel === 'all') return true;
       return r.subChannel === selectedSubChannel;
     }).sort((a, b) => b.revenue - a.revenue || a.id - b.id);
-  }, [selectedSubChannel]);
+  }, [periodCampaigns, selectedSubChannel]);
+
+  // Filtered daily traffic for the selected date range
+  const filteredDailyTraffic = useMemo(() => {
+    return HAPPINESS_DAILY_TRAFFIC.filter((d) => {
+      if (startDate && d.date < startDate) return false;
+      if (endDate && d.date > endDate) return false;
+      return true;
+    });
+  }, [startDate, endDate]);
 
   // Pagination calculations
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
@@ -61,9 +99,9 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     return filteredRows.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   }, [filteredRows, currentPage]);
 
-  // Overall totals across all 28 campaigns (October 2026 baseline)
+  // Overall totals across campaigns active in the period
   const grandTotals = useMemo(() => {
-    return HAPPINESS_CAMPAIGN_ROWS.reduce(
+    return periodCampaigns.reduce(
       (acc, r) => ({
         chats: acc.chats + r.chats,
         leads: acc.leads + r.leads,
@@ -72,7 +110,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
       }),
       { chats: 0, leads: 0, paid: 0, revenue: 0 }
     );
-  }, []);
+  }, [periodCampaigns]);
 
   // Overall AOV
   const overallAov = useMemo(() => {
@@ -94,7 +132,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     return { ...res, aov };
   }, [filteredRows]);
 
-  // Detailed Source Performance Breakdown (Persentase % & Sub-channels)
+  // Detailed Source Performance Breakdown
   const sourcePerformance = useMemo(() => {
     const subChannels: HappinessSubChannel[] = [
       'ScentplusClub',
@@ -110,7 +148,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     const totalPaid = grandTotals.paid || 1;
 
     return subChannels.map((sc) => {
-      const rows = HAPPINESS_CAMPAIGN_ROWS.filter((r) => r.subChannel === sc);
+      const rows = periodCampaigns.filter((r) => r.subChannel === sc);
       const revenue = rows.reduce((acc, r) => acc + r.revenue, 0);
       const chats = rows.reduce((acc, r) => acc + r.chats, 0);
       const leads = rows.reduce((acc, r) => acc + r.leads, 0);
@@ -133,20 +171,20 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
         sharePaidPct: (paid / totalPaid) * 100,
       };
     }).sort((a, b) => b.revenue - a.revenue);
-  }, [grandTotals]);
+  }, [grandTotals, periodCampaigns]);
 
-  // Top 5 ranking campaigns by revenue
+  // Top 5 ranking campaigns by revenue in period
   const top5Campaigns = useMemo(() => {
-    return [...HAPPINESS_CAMPAIGN_ROWS]
+    return [...periodCampaigns]
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, []);
+  }, [periodCampaigns]);
 
   // Selected campaign for detail panel
   const selectedCampaign = useMemo(() => {
     if (selectedCampaignId === null) return null;
-    return HAPPINESS_CAMPAIGN_ROWS.find((r) => r.id === selectedCampaignId) ?? null;
-  }, [selectedCampaignId]);
+    return periodCampaigns.find((r) => r.id === selectedCampaignId) ?? null;
+  }, [selectedCampaignId, periodCampaigns]);
 
   // Filtered aftersales tickets
   const filteredTickets = useMemo(() => {
@@ -154,19 +192,20 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     return HAPPINESS_AFTERSALES_DATA.tickets.filter((t) => t.packageStatus === aftersalesFilter);
   }, [aftersalesFilter]);
 
-  // Max value calculation for Daily Chart scaling
+  // Max value calculation for Daily Chart scaling based on filtered days
   const dailyMaxVal = useMemo(() => {
+    if (filteredDailyTraffic.length === 0) return 1;
     if (dailyMetric === 'revenue') {
-      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.revenue));
+      return Math.max(...filteredDailyTraffic.map((d) => d.revenue), 1);
     }
     if (dailyMetric === 'chats') {
-      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.chats));
+      return Math.max(...filteredDailyTraffic.map((d) => d.chats), 1);
     }
     if (dailyMetric === 'leads') {
-      return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.leads));
+      return Math.max(...filteredDailyTraffic.map((d) => d.leads), 1);
     }
-    return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.aov));
-  }, [dailyMetric]);
+    return Math.max(...filteredDailyTraffic.map((d) => d.aov), 1);
+  }, [dailyMetric, filteredDailyTraffic]);
 
 
 
@@ -210,12 +249,16 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
             </p>
           </div>
 
-          {/* Period Badge */}
+          {/* Date Range Picker (Mirrors Dashboard KPI Ads) */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-              <CalendarDays className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
-              Oktober 2026
-            </span>
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              datePreset={datePreset}
+              availableDates={HAPPINESS_AVAILABLE_DATES}
+              activeDateRangeText={datePreset === 'prev_month' ? 'Oktober 2026' : undefined}
+              onApply={handleApplyDateRange}
+            />
           </div>
         </div>
 
@@ -290,7 +333,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           </div>
           <div className="pt-1.5 mt-1 border-t border-slate-100 flex items-center justify-between text-3xs text-slate-400">
             <span>Cakupan:</span>
-            <span className="font-semibold text-slate-700">28 Kampanye Aktif</span>
+            <span className="font-semibold text-slate-700">{periodCampaigns.length} Kampanye Aktif</span>
           </div>
         </div>
 
@@ -600,10 +643,10 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
             <div>
               <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-[#127a60]" />
-                Traffic Day by Day (1–31 Oktober 2026)
+                Traffic Day by Day ({formatDateWIB(startDate)} – {formatDateWIB(endDate)})
               </h2>
               <p className="text-2xs text-slate-500 mt-0.5">
-                Dinamika harian penjualan, perolehan leads, dan volume incoming chat.
+                Dinamika harian penjualan, perolehan leads, dan volume incoming chat ({filteredDailyTraffic.length} hari aktif).
               </p>
             </div>
 
@@ -650,56 +693,64 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
 
           {/* SVG Bar Chart Visualization */}
           <div className="bg-slate-50/70 rounded-xl p-4 border border-slate-200/80">
-            <div className="h-44 w-full flex items-end gap-1 sm:gap-1.5 pt-6 pb-2">
-              {HAPPINESS_DAILY_TRAFFIC.map((d) => {
-                const val =
-                  dailyMetric === 'revenue'
-                    ? d.revenue
-                    : dailyMetric === 'chats'
-                    ? d.chats
-                    : dailyMetric === 'leads'
-                    ? d.leads
-                    : d.aov;
-                const heightPct = dailyMaxVal > 0 ? (val / dailyMaxVal) * 100 : 0;
-                const isSpike = !!d.highlight;
+            {filteredDailyTraffic.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400">
+                Tidak ada data traffic pada rentang tanggal yang dipilih. Silakan pilih rentang periode lain.
+              </div>
+            ) : (
+              <div className="h-44 w-full flex items-end gap-1 sm:gap-1.5 pt-6 pb-2">
+                {filteredDailyTraffic.map((d) => {
+                  const val =
+                    dailyMetric === 'revenue'
+                      ? d.revenue
+                      : dailyMetric === 'chats'
+                      ? d.chats
+                      : dailyMetric === 'leads'
+                      ? d.leads
+                      : d.aov;
+                  const heightPct = dailyMaxVal > 0 ? (val / dailyMaxVal) * 100 : 0;
+                  const isSpike = !!d.highlight;
 
-                return (
-                  <div
-                    key={d.day}
-                    className="flex-1 h-full flex flex-col justify-end items-center group relative cursor-pointer"
-                  >
-                    {/* Tooltip on Hover */}
-                    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-44">
-                      <div className="bg-slate-900 text-white text-3xs rounded-lg p-2 shadow-xl border border-slate-700 leading-tight">
-                        <div className="font-bold text-amber-300 mb-0.5">{d.date}</div>
-                        {d.highlight && <div className="text-emerald-300 font-semibold mb-1">{d.highlight}</div>}
-                        <div>Omzet: <strong className="tabular-nums">{formatCurrencyIDR(d.revenue)}</strong></div>
-                        <div>Chats: <strong className="tabular-nums">{d.chats}</strong> · Leads: <strong className="tabular-nums">{d.leads}</strong></div>
-                        <div>Paid: <strong className="tabular-nums">{d.paid}</strong> · AOV: <strong className="tabular-nums">{formatCurrencyIDR(d.aov)}</strong></div>
-                      </div>
-                      <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
-                    </div>
-
-                    {/* Bar */}
+                  return (
                     <div
-                      style={{ height: `${Math.max(heightPct, 6)}%` }}
-                      className={`w-full rounded-t-sm transition-all ${
-                        isSpike
-                          ? 'bg-amber-500 hover:bg-amber-600'
-                          : dailyMetric === 'revenue'
-                          ? 'bg-[#127a60] hover:bg-emerald-700'
-                          : dailyMetric === 'chats'
-                          ? 'bg-sky-600 hover:bg-sky-700'
-                          : dailyMetric === 'leads'
-                          ? 'bg-purple-600 hover:bg-purple-700'
-                          : 'bg-indigo-600 hover:bg-indigo-700'
-                      }`}
-                    />
-                    <span className="text-[10px] text-slate-500 mt-1 font-mono">{d.day}</span>
-                  </div>
-                );
-              })}
-            </div>
+                      key={d.date}
+                      className="flex-1 h-full flex flex-col justify-end items-center group relative cursor-pointer"
+                    >
+                      {/* Tooltip on Hover */}
+                      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-30 pointer-events-none w-44">
+                        <div className="bg-slate-900 text-white text-3xs rounded-lg p-2 shadow-xl border border-slate-700 leading-tight">
+                          <div className="font-bold text-amber-300 mb-0.5">{d.date}</div>
+                          {d.highlight && <div className="text-emerald-300 font-semibold mb-1">{d.highlight}</div>}
+                          <div>Omzet: <strong className="tabular-nums">{formatCurrencyIDR(d.revenue)}</strong></div>
+                          <div>Chats: <strong className="tabular-nums">{d.chats}</strong> · Leads: <strong className="tabular-nums">{d.leads}</strong></div>
+                          <div>Paid: <strong className="tabular-nums">{d.paid}</strong> · AOV: <strong className="tabular-nums">{formatCurrencyIDR(d.aov)}</strong></div>
+                        </div>
+                        <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1" />
+                      </div>
+
+                      {/* Bar */}
+                      <div
+                        style={{ height: `${Math.max(heightPct, 6)}%` }}
+                        className={`w-full rounded-t-sm transition-all ${
+                          isSpike
+                            ? 'bg-amber-500 hover:bg-amber-600'
+                            : dailyMetric === 'revenue'
+                            ? 'bg-[#127a60] hover:bg-emerald-700'
+                            : dailyMetric === 'chats'
+                            ? 'bg-sky-600 hover:bg-sky-700'
+                            : dailyMetric === 'leads'
+                            ? 'bg-purple-600 hover:bg-purple-700'
+                            : 'bg-indigo-600 hover:bg-indigo-700'
+                        }`}
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 font-mono">
+                        {d.date.slice(8)}/{d.date.slice(5, 7)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="flex items-center justify-between text-2xs text-slate-500 pt-2 border-t border-slate-200">
               <span className="flex items-center gap-2">
@@ -725,8 +776,8 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {HAPPINESS_DAILY_TRAFFIC.map((d) => (
-                  <tr key={d.day} className={`hover:bg-slate-50/80 transition ${d.highlight ? 'bg-amber-50/30' : ''}`}>
+                {filteredDailyTraffic.map((d) => (
+                  <tr key={d.date} className={`hover:bg-slate-50/80 transition ${d.highlight ? 'bg-amber-50/30' : ''}`}>
                     <td className="py-2 px-3 font-mono font-medium text-slate-800">{d.date}</td>
                     <td className="py-2 px-3">
                       {d.highlight ? (
@@ -997,7 +1048,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
               }}
               className="py-1.5 px-3 text-xs font-semibold text-slate-800 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#127a60] cursor-pointer"
             >
-              <option value="all">Semua Sub-Channel ({HAPPINESS_CAMPAIGN_ROWS.length})</option>
+              <option value="all">Semua Sub-Channel ({periodCampaigns.length})</option>
               <option value="ScentplusClub">ScentplusClub / SC (12)</option>
               <option value="Instagram">Instagram (10)</option>
               <option value="Threads">Threads (4)</option>

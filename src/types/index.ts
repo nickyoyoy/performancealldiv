@@ -4,6 +4,8 @@
 
 export type AppTab = 'live-host' | 'customer-happiness' | 'crm-cs';
 
+export type DatePreset = 'all' | '30d' | '7d' | 'mtd' | 'prev_month' | 'custom';
+
 // --- LIVE HOST TYPES ---
 export interface HostRecord {
   id: string;

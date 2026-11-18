@@ -43,3 +43,17 @@ export function formatRoas(val: number | null | undefined): string {
   }).format(val);
   return `${str}x`;
 }
+
+export function formatDateWIB(dateStr: string | null | undefined): string {
+  if (!dateStr || dateStr === 'N/A') return '-';
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return dateStr;
+  const [, year, month, day] = match;
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
+  const mIndex = parseInt(month, 10) - 1;
+  const mName = monthNames[mIndex] || month;
+  return `${parseInt(day, 10)} ${mName} ${year}`;
+}

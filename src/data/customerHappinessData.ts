@@ -425,7 +425,28 @@ export const HAPPINESS_DAILY_TRAFFIC: HappinessDailyTraffic[] = [
   { day: 29, date: '2026-10-29', chats: 8, leads: 4, paid: 4, revenue: 948760, aov: 237190 },
   { day: 30, date: '2026-10-30', chats: 6, leads: 3, paid: 3, revenue: 710000, aov: 236666 },
   { day: 31, date: '2026-10-31', chats: 5, leads: 3, paid: 3, revenue: 700000, aov: 233333 },
+  // November 2026 Daily Traffic (MTD 1–18 Nov 2026)
+  { day: 1, date: '2026-11-01', chats: 12, leads: 6, paid: 5, revenue: 1250000, aov: 250000, highlight: 'Awal Bulan Nov' },
+  { day: 2, date: '2026-11-02', chats: 14, leads: 7, paid: 6, revenue: 1440000, aov: 240000 },
+  { day: 3, date: '2026-11-03', chats: 15, leads: 7, paid: 6, revenue: 1470000, aov: 245000 },
+  { day: 4, date: '2026-11-04', chats: 18, leads: 9, paid: 8, revenue: 1960000, aov: 245000 },
+  { day: 5, date: '2026-11-05', chats: 16, leads: 8, paid: 7, revenue: 1715000, aov: 245000 },
+  { day: 6, date: '2026-11-06', chats: 20, leads: 10, paid: 9, revenue: 2205000, aov: 245000 },
+  { day: 7, date: '2026-11-07', chats: 22, leads: 11, paid: 10, revenue: 2450000, aov: 245000 },
+  { day: 8, date: '2026-11-08', chats: 24, leads: 12, paid: 11, revenue: 2695000, aov: 245000, highlight: 'Warm Up 11.11' },
+  { day: 9, date: '2026-11-09', chats: 28, leads: 14, paid: 13, revenue: 3250000, aov: 250000, highlight: 'Eve 11.11 Spike' },
+  { day: 10, date: '2026-11-10', chats: 38, leads: 18, paid: 20, revenue: 5200000, aov: 260000, highlight: 'Puncak 11.11 Super Sale' },
+  { day: 11, date: '2026-11-11', chats: 42, leads: 20, paid: 22, revenue: 5720000, aov: 260000, highlight: 'Puncak 11.11 D-Day' },
+  { day: 12, date: '2026-11-12', chats: 25, leads: 12, paid: 12, revenue: 3000000, aov: 250000, highlight: 'Aftermath 11.11' },
+  { day: 13, date: '2026-11-13', chats: 19, leads: 9, paid: 9, revenue: 2160000, aov: 240000 },
+  { day: 14, date: '2026-11-14', chats: 17, leads: 8, paid: 8, revenue: 1920000, aov: 240000 },
+  { day: 15, date: '2026-11-15', chats: 16, leads: 8, paid: 7, revenue: 1680000, aov: 240000 },
+  { day: 16, date: '2026-11-16', chats: 15, leads: 7, paid: 7, revenue: 1680000, aov: 240000 },
+  { day: 17, date: '2026-11-17', chats: 14, leads: 7, paid: 6, revenue: 1440000, aov: 240000 },
+  { day: 18, date: '2026-11-18', chats: 11, leads: 5, paid: 5, revenue: 1200000, aov: 240000, highlight: 'Hari Ini (Berjalan)' },
 ];
+
+export const HAPPINESS_AVAILABLE_DATES: string[] = HAPPINESS_DAILY_TRAFFIC.map((d) => d.date);
 
 export interface AfterSalesPackageTicket {
   id: string;
