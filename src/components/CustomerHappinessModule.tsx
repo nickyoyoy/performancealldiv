@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CustomerHappinessSummary } from '../types';
 import {
   HAPPINESS_CAMPAIGN_ROWS,
@@ -44,7 +44,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
   const [dailyMetric, setDailyMetric] = useState<'revenue' | 'chats' | 'leads' | 'aov'>('revenue');
   const [aftersalesFilter, setAftersalesFilter] = useState<'all' | 'akan_dikirim' | 'sedang_dikirim' | 'sudah_diterima'>('all');
 
-  const scoringRef = useRef<HTMLDivElement>(null);
+
 
   // Filtered rows for the campaign table
   const filteredRows = useMemo(() => {
@@ -168,12 +168,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
     return Math.max(...HAPPINESS_DAILY_TRAFFIC.map((d) => d.aov));
   }, [dailyMetric]);
 
-  const handleOpenKetentuan = () => {
-    setActiveView('rubric');
-    setTimeout(() => {
-      scoringRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-  };
+
 
   const getSubChannelBadge = (subChannel: HappinessSubChannel) => {
     switch (subChannel) {
@@ -215,21 +210,12 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
             </p>
           </div>
 
-          {/* Period Badge & Quick Action */}
+          {/* Period Badge */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
               <CalendarDays className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
               Oktober 2026
             </span>
-
-            <button
-              type="button"
-              onClick={handleOpenKetentuan}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#127a60]"
-            >
-              <ListChecks className="w-3.5 h-3.5 text-slate-600" aria-hidden="true" />
-              <span>Rubrik 10 KPI</span>
-            </button>
           </div>
         </div>
 
@@ -891,7 +877,7 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
 
       {/* VIEW 4: RUBRIC & 10 INDIKATOR KPI */}
       {activeView === 'rubric' && (
-        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card space-y-4" ref={scoringRef}>
+        <section className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-card space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2">
