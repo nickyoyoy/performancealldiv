@@ -3,6 +3,14 @@ import { AdsRow, RawData, ShopeeRow, TikTokRow } from '../utils/liveHostEngine';
 
 const RAW_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || 'https://pkcjdhxwyjgldkciplvs.supabase.co';
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
+const SUPABASE_SHOPEE_TABLE =
+  import.meta.env.VITE_SUPABASE_SHOPEE_TABLE || 'shopee_live';
+
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
   if (typeof val !== 'string') return 0;
@@ -85,6 +93,61 @@ async function fetchSheetText(
   return { text: await res.text(), source: 'snapshot' };
 }
 
+/**
+ * Fetch live Shopee rows directly from Supabase `shopee_live` table.
+ * Automatically paginates through PostgREST 1000-row limit.
+ */
+export async function fetchShopeeRowsFromSupabase(): Promise<ShopeeRow[] | null> {
+  try {
+    const pageSize = 1000;
+    let offset = 0;
+    interface SupabaseShopeeRow {
+      nama_host?: string;
+      bulan?: string;
+      penjualan_pesanan_siap_dikirim?: number | string | null;
+    }
+    const allBatches: SupabaseShopeeRow[] = [];
+
+    while (true) {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 8000);
+
+      const endpoint = `${SUPABASE_URL}/rest/v1/${SUPABASE_SHOPEE_TABLE}?select=nama_host,bulan,penjualan_pesanan_siap_dikirim&order=id.asc&offset=${offset}&limit=${pageSize}`;
+      const res = await fetch(endpoint, {
+        signal: controller.signal,
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+      clearTimeout(tid);
+
+      if (!res.ok) {
+        console.warn(`Supabase shopee_live query returned status ${res.status}`);
+        return null;
+      }
+
+      const batch = (await res.json()) as SupabaseShopeeRow[];
+      if (!Array.isArray(batch) || batch.length === 0) break;
+      allBatches.push(...batch);
+
+      if (batch.length < pageSize) break;
+      offset += pageSize;
+    }
+
+    if (allBatches.length === 0) return null;
+
+    return allBatches.map((r) => ({
+      host: (r.nama_host || '').trim(),
+      month: (r.bulan || '').trim(),
+      omzet: Number(r.penjualan_pesanan_siap_dikirim) || 0,
+    }));
+  } catch (err) {
+    console.warn('Gagal memuat Shopee live dari Supabase, fallback ke file lokal:', err);
+    return null;
+  }
+}
+
 export interface LiveHostFetchResult {
   rawData: RawData;
   sourceMode: 'live' | 'snapshot';
@@ -92,19 +155,50 @@ export interface LiveHostFetchResult {
 }
 
 export async function fetchLiveHostRawData(preferLive = false): Promise<LiveHostFetchResult> {
-  const [ttRes, spRes, adsRes] = await Promise.all([
+  const [ttRes, adsRes, supabaseShopeeRows] = await Promise.all([
     fetchSheetText('ADS Tiktok', '/data/ADS_Tiktok.csv', preferLive),
-    fetchSheetText('Shopee JAN 26', '/data/Shopee_JAN_26.csv', preferLive),
     fetchSheetText('Ads Shopee', '/data/Ads_Shopee.csv', preferLive),
+    fetchShopeeRowsFromSupabase(),
   ]);
 
-  const rawData = parseRawDataFromCsv(ttRes.text, spRes.text, adsRes.text);
-  const allLive =
-    ttRes.source === 'live' && spRes.source === 'live' && adsRes.source === 'live';
+  let shopee: ShopeeRow[] = [];
+  let shopeeSource: 'live' | 'snapshot' = 'snapshot';
+
+  if (supabaseShopeeRows && supabaseShopeeRows.length > 0) {
+    shopee = supabaseShopeeRows;
+    shopeeSource = 'live';
+  } else {
+    // Fallback to local CSV snapshot
+    const spRes = await fetchSheetText('Shopee JAN 26', '/data/Shopee_JAN_26.csv', preferLive);
+    shopee = parseCsvRows(spRes.text).map((r) => ({
+      host: (r['Nama Host'] || '').trim(),
+      month: (r['Bulan'] || '').trim(),
+      omzet: parseNum(r['Penjualan(Pesanan Siap Dikirim)']),
+    }));
+    shopeeSource = spRes.source;
+  }
+
+  const tiktokRows = parseCsvRows(ttRes.text);
+  const adsRows = parseCsvRows(adsRes.text);
+
+  const tiktok: TikTokRow[] = tiktokRows.map((r) => ({
+    host: (r['Nama Host'] || '').trim(),
+    month: (r['Bulan'] || '').trim(),
+    omzet: parseNum(r['Pendapatan kotor']),
+    biaya: parseNum(r['Biaya']),
+  }));
+
+  const ads: AdsRow[] = adsRows.map((r) => ({
+    marketplace: (r['Marketplace'] || '').trim(),
+    month: (r['Bulan'] || '').trim(),
+    nominal: parseNum(r['Nominal']),
+  }));
+
+  const rawData: RawData = { tiktok, shopee, ads };
 
   return {
     rawData,
-    sourceMode: allLive ? 'live' : 'snapshot',
+    sourceMode: shopeeSource === 'live' ? 'live' : 'snapshot',
     fetchedAt: new Date().toLocaleTimeString('id-ID', {
       hour: '2-digit',
       minute: '2-digit',
@@ -112,4 +206,3 @@ export async function fetchLiveHostRawData(preferLive = false): Promise<LiveHost
     }),
   };
 }
-
