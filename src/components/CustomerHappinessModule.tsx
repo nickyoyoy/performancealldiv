@@ -258,9 +258,6 @@ export const CustomerHappinessModule: React.FC<CustomerHappinessModuleProps> = (
           >
             <Package className="w-3.5 h-3.5 text-slate-500" />
             <span>After-Sales &amp; Upsell WACommerce</span>
-            <span className="px-1.5 py-0.2 rounded-full text-3xs font-semibold bg-emerald-100 text-emerald-800 ml-0.5">
-              {HAPPINESS_AFTERSALES_DATA.upsellClosingCount} Won
-            </span>
           </button>
 
           <button
