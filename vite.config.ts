@@ -51,7 +51,12 @@ export default defineConfig({
               res.end('Sheet not allowed');
               return;
             }
-            const targetUrl = `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${Date.now()}`;
+            const SHEET_GIDS: Record<string, string> = {
+              'ADS Tiktok': '906647422',
+            };
+            const targetUrl = SHEET_GIDS[sheet]
+              ? `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GIDS[sheet]}`
+              : `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${Date.now()}`;
             const fetchRes = await fetch(targetUrl, {
               redirect: 'follow',
               headers: {

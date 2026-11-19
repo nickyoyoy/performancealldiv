@@ -10,9 +10,15 @@ export default async function handler(req, res) {
       return res.end('Sheet not allowed');
     }
 
-    const targetUrl = `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
-      sheet
-    )}&_t=${Date.now()}`;
+    const SHEET_GIDS = {
+      'ADS Tiktok': '906647422',
+    };
+
+    const targetUrl = SHEET_GIDS[sheet]
+      ? `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GIDS[sheet]}`
+      : `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
+          sheet
+        )}&_t=${Date.now()}`;
 
     const fetchRes = await fetch(targetUrl, {
       redirect: 'follow',

@@ -28,6 +28,34 @@ function reportMonthToName(dateStr?: string | null): string {
   return MONTH_NAMES[d.getUTCMonth()] || '';
 }
 
+const MONTH_NAMES_MAP: Record<string, string> = {
+  '01': 'January',
+  '02': 'February',
+  '03': 'March',
+  '04': 'April',
+  '05': 'May',
+  '06': 'June',
+  '07': 'July',
+  '08': 'August',
+  '09': 'September',
+  '10': 'October',
+  '11': 'November',
+  '12': 'December',
+};
+
+function inferMonth(row: Record<string, string>): string {
+  const direct = (row['Bulan'] || '').trim();
+  if (direct) return direct;
+  const waktu = (row['Waktu peluncuran'] || row['Tanggal'] || '').trim();
+  if (waktu) {
+    const match = waktu.match(/2026-([0-9]{2})/);
+    if (match && MONTH_NAMES_MAP[match[1]]) {
+      return MONTH_NAMES_MAP[match[1]];
+    }
+  }
+  return '';
+}
+
 function parseNum(val: unknown): number {
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
   if (typeof val !== 'string') return 0;
@@ -55,7 +83,7 @@ export function parseRawDataFromCsv(
 
   const tiktok: TikTokRow[] = tiktokRows.map((r) => ({
     host: (r['Nama Host'] || '').trim(),
-    month: (r['Bulan'] || '').trim(),
+    month: inferMonth(r),
     omzet: parseNum(r['Pendapatan kotor']),
     biaya: parseNum(r['Biaya']),
   }));
@@ -83,7 +111,9 @@ async function fetchSheetText(
   if (preferLive) {
     const urls = [
       `/api/raw-sheet?sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`,
-      `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`,
+      sheetName === 'ADS Tiktok'
+        ? `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/export?format=csv&gid=906647422`
+        : `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`,
     ];
     for (const url of urls) {
       try {
@@ -262,14 +292,14 @@ export async function fetchLiveHostRawData(preferLive = false): Promise<LiveHost
   }
 
   // 2. Process TikTok Rows
-  // Verified campaign records in ADS_Tiktok contain the authentic ad spend & revenue per host (Jan - Sep)
+  // Verified campaign records in ADS_Tiktok contain the authentic ad spend & revenue per host (Jan - Oct)
   const csvTiktokRows = parseCsvRows(ttRes.text);
   const csvMonthsWithData = new Set<string>();
   for (const r of csvTiktokRows) {
     const omzet = parseNum(r['Pendapatan kotor']);
     const biaya = parseNum(r['Biaya']);
     if (omzet > 0 || biaya > 0) {
-      const m = (r['Bulan'] || '').trim();
+      const m = inferMonth(r);
       if (m) csvMonthsWithData.add(m);
     }
   }
@@ -277,9 +307,9 @@ export async function fetchLiveHostRawData(preferLive = false): Promise<LiveHost
   let tiktok: TikTokRow[] = [];
   let tiktokSource: 'live' | 'snapshot' = 'snapshot';
 
-  // Add all verified campaign rows from ADS_Tiktok for months that have data (Jan - Sep)
+  // Add all verified campaign rows from ADS_Tiktok for months that have data (Jan - Oct)
   for (const r of csvTiktokRows) {
-    const m = (r['Bulan'] || '').trim();
+    const m = inferMonth(r);
     if (csvMonthsWithData.has(m)) {
       tiktok.push({
         host: (r['Nama Host'] || '').trim(),
