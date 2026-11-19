@@ -531,5 +531,21 @@ export const DEFAULT_ATTENDANCE_BY_MONTH: Partial<Record<MonthName, Record<strin
     GISCA: { hadir: 24, izin: 2, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 24 shift (92,3%), backup shift Arnie' },
     ARNIE: { hadir: 22, izin: 4, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 22 shift (84,6%), izin ada kabar duka' },
   },
+  October: {
+    TYASS: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 30 shift (100%), shift wajib 26 terpenuhi' },
+    TATAA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 30 shift (100%), shift wajib 26 terpenuhi' },
+    RATNA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    SASAA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    RAISA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    FARAH: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 34 shift (100%), shift wajib 26 terpenuhi' },
+    ARNIE: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    LUCIA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    GISCA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    NIAAA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    INTAN: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    ALESA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 31 shift (100%), shift wajib 26 terpenuhi' },
+    TIAAA: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 32 shift (100%), shift wajib 26 terpenuhi' },
+    MICEL: { hadir: 26, izin: 0, sakit: 0, cuti: 0, alpa: 0, keterangan: 'Hadir 32 shift (100%), shift wajib 26 terpenuhi' },
+  },
 };
 

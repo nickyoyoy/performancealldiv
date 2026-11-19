@@ -91,6 +91,10 @@ function loadStoredState(): StoredLiveHostState {
         }
       }
 
+      if (!attendanceByMonth.October || Object.keys(attendanceByMonth.October).length === 0) {
+        attendanceByMonth.October = DEFAULT_ATTENDANCE_BY_MONTH.October!;
+      }
+
       return {
         adjByMonth: parsed.adjByMonth || {},
         targetsByMonth,
@@ -153,6 +157,29 @@ export const App: React.FC = () => {
 
   const handleUpdateDataSource = (updated: DataSourceItem) => {
     setDataSources((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
+
+  const handleSyncSingleDataSource = async (item: DataSourceItem) => {
+    if (item.id === 'attendance_schedule') {
+      const tabLower = item.selectedTab.toLowerCase();
+      if (tabLower.includes('okt') || tabLower.includes('oct')) {
+        setStored((prev) => ({
+          ...prev,
+          attendanceByMonth: {
+            ...prev.attendanceByMonth,
+            October: DEFAULT_ATTENDANCE_BY_MONTH.October || {},
+          },
+        }));
+      } else if (tabLower.includes('sep')) {
+        setStored((prev) => ({
+          ...prev,
+          attendanceByMonth: {
+            ...prev.attendanceByMonth,
+            September: DEFAULT_ATTENDANCE_BY_MONTH.September || {},
+          },
+        }));
+      }
+    }
   };
 
   const handleSyncAllDataSources = async () => {
@@ -638,6 +665,7 @@ export const App: React.FC = () => {
         sources={dataSources}
         onUpdateSource={handleUpdateDataSource}
         onSyncAll={handleSyncAllDataSources}
+        onSyncSource={handleSyncSingleDataSource}
       />
     </div>
   );

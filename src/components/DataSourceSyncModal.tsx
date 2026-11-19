@@ -20,6 +20,26 @@ export interface DataSourceItem {
   auditNote: string;
 }
 
+export const SCHEDULE_TAB_GIDS: Record<string, string> = {
+  'SC+ September 2026': '247359567',
+  'SC+ September': '247359567',
+  'SC+October 2026': '1726778735',
+  'SC+ Oktober 2026': '1726778735',
+  'SC+November 2026': '1044268224',
+  'SC+ November 2026': '1044268224',
+};
+
+export function getScheduleUrlForTab(tab: string): string {
+  const gid =
+    SCHEDULE_TAB_GIDS[tab] ||
+    (tab.toLowerCase().includes('okt') || tab.toLowerCase().includes('oct')
+      ? '1726778735'
+      : tab.toLowerCase().includes('nov')
+      ? '1044268224'
+      : '247359567');
+  return `https://docs.google.com/spreadsheets/d/1HZ4OO5z24MeJQFIWCZr7t8yoz-CQKwDZVg7C6eml78A/edit?gid=${gid}`;
+}
+
 export const INITIAL_DATA_SOURCES: DataSourceItem[] = [
   {
     id: 'tiktok_ads',
@@ -68,11 +88,11 @@ export const INITIAL_DATA_SOURCES: DataSourceItem[] = [
     category: 'KEHADIRAN',
     name: 'Jadwal Wajib Shift',
     sheetUrl:
-      'https://docs.google.com/spreadsheets/d/1HZ4OO5z24MeJQFIWCZr7t8yoz-CQKwDZVg7C6eml78A/edit?gid=247359567',
-    selectedTab: 'SC+ September 2026',
-    availableTabs: ['SC+ September 2026', 'SC+ Oktober 2026', 'SC+ November 2026'],
+      'https://docs.google.com/spreadsheets/d/1HZ4OO5z24MeJQFIWCZr7t8yoz-CQKwDZVg7C6eml78A/edit?gid=1726778735',
+    selectedTab: 'SC+October 2026',
+    availableTabs: ['SC+ September 2026', 'SC+October 2026', 'SC+November 2026', 'SC+ Oktober 2026'],
     version: 1,
-    lastSynced: '29/10/2026, 14.06.25',
+    lastSynced: '19/11/2026, 10.25.00',
     status: 'synced',
     auditNote:
       'Sinkronkan mengganti sumber Scentplus untuk periode ini. Data di spreadsheet tidak diubah.',
@@ -126,6 +146,7 @@ interface DataSourceSyncModalProps {
   sources: DataSourceItem[];
   onUpdateSource: (updated: DataSourceItem) => void;
   onSyncAll: () => Promise<void>;
+  onSyncSource?: (item: DataSourceItem) => Promise<void> | void;
 }
 
 export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
@@ -134,6 +155,7 @@ export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
   sources,
   onUpdateSource,
   onSyncAll,
+  onSyncSource,
 }) => {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [customTabName, setCustomTabName] = useState<string>('');
@@ -161,7 +183,11 @@ export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
 
   const handleSyncCard = async (item: DataSourceItem) => {
     setSyncingId(item.id);
-    await new Promise((r) => setTimeout(r, 600));
+    if (onSyncSource) {
+      await onSyncSource(item);
+    } else {
+      await new Promise((r) => setTimeout(r, 600));
+    }
 
     const now = new Date();
     const formatted = `${String(now.getDate()).padStart(2, '0')}/${String(
@@ -173,8 +199,14 @@ export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
       now.getSeconds()
     ).padStart(2, '0')}`;
 
+    const sheetUrl =
+      item.id === 'attendance_schedule'
+        ? getScheduleUrlForTab(item.selectedTab)
+        : item.sheetUrl;
+
     const nextItem: DataSourceItem = {
       ...item,
+      sheetUrl,
       version: item.version + 1,
       lastSynced: formatted,
       status: 'synced',
@@ -194,9 +226,15 @@ export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
       ? item.availableTabs
       : [clean, ...item.availableTabs];
 
+    const sheetUrl =
+      item.id === 'attendance_schedule'
+        ? getScheduleUrlForTab(clean)
+        : item.sheetUrl;
+
     onUpdateSource({
       ...item,
       selectedTab: clean,
+      sheetUrl,
       availableTabs: updatedTabs,
       status: 'pending',
     });
@@ -369,12 +407,18 @@ export const DataSourceSyncModal: React.FC<DataSourceSyncModalProps> = ({
                         id={selectId}
                         value={item.selectedTab}
                         onChange={(e) => {
+                          const val = e.target.value;
+                          const sheetUrl =
+                            item.id === 'attendance_schedule'
+                              ? getScheduleUrlForTab(val)
+                              : item.sheetUrl;
                           onUpdateSource({
                             ...item,
-                            selectedTab: e.target.value,
+                            selectedTab: val,
+                            sheetUrl,
                             status: 'pending',
                           });
-                          showToast(`Tab diubah ke "${e.target.value}". Klik Sinkronkan.`);
+                          showToast(`Tab diubah ke "${val}". Klik Sinkronkan.`);
                         }}
                         className="w-full px-3 min-h-[38px] rounded-xl border border-slate-300 bg-slate-50/80 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-600"
                       >
