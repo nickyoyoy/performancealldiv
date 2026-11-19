@@ -400,51 +400,22 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
 
             {/* OpsFlow Donut Ring + Legend */}
             <div className="flex items-center gap-4 mb-4">
-              <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
-                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 36 36" aria-hidden="true">
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#F1F5F9"
-                    strokeWidth="3.8"
-                  />
-                  {/* Komisi Penjualan segment */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#127a60"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${komisiPct} ${100 - komisiPct}`}
-                    strokeDashoffset="0"
-                  />
-                  {/* Bonus Kehadiran segment */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#3B82F6"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${bonusPct} ${100 - bonusPct}`}
-                    strokeDashoffset={`-${komisiPct}`}
-                  />
-                  {/* Sisa Anggaran segment */}
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.915"
-                    fill="transparent"
-                    stroke="#F59E0B"
-                    strokeWidth="3.8"
-                    strokeDasharray={`${sisaPct} ${100 - sisaPct}`}
-                    strokeDashoffset={`-${komisiPct + bonusPct}`}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <div
+                className="relative w-24 h-24 shrink-0 rounded-full flex items-center justify-center transition-all duration-300"
+                style={{
+                  background:
+                    plafon <= 0
+                      ? '#F1F5F9'
+                      : `conic-gradient(
+                          #127a60 0% ${komisiPct}%,
+                          #3B82F6 ${komisiPct}% ${komisiPct + bonusPct}%,
+                          #F59E0B ${komisiPct + bonusPct}% 100%
+                        )`,
+                }}
+                aria-label={`Donut chart alokasi: Komisi ${formatPercent(komisiPct, 0)}, Bonus ${formatPercent(bonusPct, 0)}, Sisa ${formatPercent(sisaPct, 0)}`}
+              >
+                {/* Inner white circle for donut hole */}
+                <div className="w-[74px] h-[74px] bg-white rounded-full flex flex-col items-center justify-center text-center shadow-xs">
                   <span className="text-xs font-bold text-slate-900 tabular-nums">
                     {formatPercent(usedPct, 0)}
                   </span>
