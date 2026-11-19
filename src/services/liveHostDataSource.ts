@@ -4,14 +4,17 @@ import { AdsRow, RawData, ShopeeRow, TikTokRow } from '../utils/liveHostEngine';
 const RAW_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
 const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL || 'https://pkcjdhxwyjgldkciplvs.supabase.co';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) ||
+  'https://pkcjdhxwyjgldkciplvs.supabase.co';
 const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
   'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
 const SUPABASE_SHOPEE_TABLE =
-  import.meta.env.VITE_SUPABASE_SHOPEE_TABLE || 'shopee_live';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_SHOPEE_TABLE) ||
+  'shopee_live';
 const SUPABASE_TIKTOK_TABLE =
-  import.meta.env.VITE_SUPABASE_TIKTOK_TABLE || 'tiktok_live';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_TIKTOK_TABLE) ||
+  'tiktok_live';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -259,42 +262,43 @@ export async function fetchLiveHostRawData(preferLive = false): Promise<LiveHost
   }
 
   // 2. Process TikTok Rows
+  // Verified campaign records in ADS_Tiktok contain the authentic ad spend & revenue per host (Jan - Sep)
   const csvTiktokRows = parseCsvRows(ttRes.text);
-  const adsBiayaMap = new Map<string, number>(); // key: `${host}|${month}` => biaya
+  const csvMonthsWithData = new Set<string>();
   for (const r of csvTiktokRows) {
-    const host = (r['Nama Host'] || '').trim().toUpperCase();
-    const month = (r['Bulan'] || '').trim();
+    const omzet = parseNum(r['Pendapatan kotor']);
     const biaya = parseNum(r['Biaya']);
-    if (host && month && biaya > 0) {
-      const key = `${host}|${month}`;
-      adsBiayaMap.set(key, (adsBiayaMap.get(key) || 0) + biaya);
+    if (omzet > 0 || biaya > 0) {
+      const m = (r['Bulan'] || '').trim();
+      if (m) csvMonthsWithData.add(m);
     }
   }
 
   let tiktok: TikTokRow[] = [];
   let tiktokSource: 'live' | 'snapshot' = 'snapshot';
 
+  // Add all verified campaign rows from ADS_Tiktok for months that have data (Jan - Sep)
+  for (const r of csvTiktokRows) {
+    const m = (r['Bulan'] || '').trim();
+    if (csvMonthsWithData.has(m)) {
+      tiktok.push({
+        host: (r['Nama Host'] || '').trim(),
+        month: m,
+        omzet: parseNum(r['Pendapatan kotor']),
+        biaya: parseNum(r['Biaya']),
+      });
+    }
+  }
+
+  // Supplement months missing from CSV (e.g. October) from Supabase tiktok_live
   if (supabaseTiktokRows && supabaseTiktokRows.length > 0) {
-    tiktok = supabaseTiktokRows.map((r) => {
-      let finalBiaya = r.biaya;
-      // Supplement ad spend from ADS_Tiktok if available and reported is 0
-      if (finalBiaya === 0) {
-        const key = `${r.host.toUpperCase()}|${r.month}`;
-        finalBiaya = adsBiayaMap.get(key) || 0;
+    for (const r of supabaseTiktokRows) {
+      if (r.month && !csvMonthsWithData.has(r.month)) {
+        tiktok.push(r);
       }
-      return {
-        ...r,
-        biaya: finalBiaya,
-      };
-    });
+    }
     tiktokSource = 'live';
   } else {
-    tiktok = csvTiktokRows.map((r) => ({
-      host: (r['Nama Host'] || '').trim(),
-      month: (r['Bulan'] || '').trim(),
-      omzet: parseNum(r['Pendapatan kotor']),
-      biaya: parseNum(r['Biaya']),
-    }));
     tiktokSource = ttRes.source;
   }
 
