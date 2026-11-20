@@ -125,19 +125,6 @@ export const INITIAL_DATA_SOURCES: DataSourceItem[] = [
     auditNote:
       'Sinkronkan mengganti sumber Scentplus untuk periode ini. Data di spreadsheet tidak diubah.',
   },
-  {
-    id: 'wacommerce_crm',
-    category: 'CRM & WA COMMERCE',
-    name: 'WACOMMERCE REST API (Orders & Chats)',
-    sheetUrl: 'https://dashboard.wacommerce.id/api/public/v1',
-    selectedTab: 'Orders (PAID)',
-    availableTabs: ['Orders (PAID)', 'Chats & Leads', 'Full Sync'],
-    version: 1,
-    lastSynced: 'Live REST API Connected',
-    status: 'synced',
-    auditNote:
-      'Terhubung langsung ke server WACOMMERCE (Bearer Token Scentplus). Menarik data omzet CS, closing won, dan repeat order secara otomatis.',
-  },
 ];
 
 interface DataSourceSyncModalProps {

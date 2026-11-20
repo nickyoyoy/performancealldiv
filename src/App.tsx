@@ -1,14 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AppTab } from './types';
-import {
-  mockCustomerHappinessSummary,
-  mockCrmSummary,
-} from './data/mockData';
-import {
-  fetchWacommerceOrders,
-  computeCrmSummary,
-  WacommerceOrderRecord,
-} from './services/crmDataSource';
 import {
   AttendanceInput,
   CommissionParams,
@@ -31,10 +21,7 @@ import {
 } from './utils/liveHostEngine';
 import { fetchLiveHostRawData } from './services/liveHostDataSource';
 import { Header } from './components/Header';
-import { NavigationTabs } from './components/NavigationTabs';
 import { LiveHostModule } from './components/LiveHostModule';
-import { CustomerHappinessModule } from './components/CustomerHappinessModule';
-import { CrmModule } from './components/CrmModule';
 import { HostDetailModal } from './components/HostDetailModal';
 import {
   DataSourceSyncModal,
@@ -43,7 +30,7 @@ import {
 } from './components/DataSourceSyncModal';
 
 const STORAGE_KEY = 'scentplus_live_host_web_state_v1';
-const DATA_SOURCES_STORAGE_KEY = 'scentplus_data_sources_v1';
+const DATA_SOURCES_STORAGE_KEY = 'scentplus_live_host_data_sources_v2';
 
 interface StoredLiveHostState {
   adjByMonth: Partial<Record<MonthName, OrganicParams>>;
@@ -117,7 +104,6 @@ function loadStoredState(): StoredLiveHostState {
 }
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>('live-host');
   const [period, setPeriod] = useState<string>('September 2026');
   const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('September');
   const [selectedHostName, setSelectedHostName] = useState<string | null>(null);
@@ -135,9 +121,11 @@ export const App: React.FC = () => {
       if (raw) {
         const parsed = JSON.parse(raw) as DataSourceItem[];
         if (Array.isArray(parsed)) {
-          const existingIds = new Set(parsed.map((item) => item.id));
+          const allowedIds = new Set(INITIAL_DATA_SOURCES.map((item) => item.id));
+          const filtered = parsed.filter((item) => allowedIds.has(item.id));
+          const existingIds = new Set(filtered.map((item) => item.id));
           const missing = INITIAL_DATA_SOURCES.filter((item) => !existingIds.has(item.id));
-          return [...parsed, ...missing];
+          return [...filtered, ...missing];
         }
       }
     } catch {
@@ -183,7 +171,7 @@ export const App: React.FC = () => {
   };
 
   const handleSyncAllDataSources = async () => {
-    await Promise.all([loadData(true), loadCrmData(true)]);
+    await loadData(true);
     const now = new Date();
     const formatted = `${String(now.getDate()).padStart(2, '0')}/${String(
       now.getMonth() + 1
@@ -230,31 +218,6 @@ export const App: React.FC = () => {
     loadData(false);
   }, []);
 
-  // CRM Live Data (WACOMMERCE REST API)
-  const [crmOrders, setCrmOrders] = useState<WacommerceOrderRecord[]>([]);
-  const [crmMonth, setCrmMonth] = useState<string>('2026-09');
-  const [crmSource, setCrmSource] = useState<'live' | 'snapshot'>('snapshot');
-  const [crmSyncedAt, setCrmSyncedAt] = useState<string>('');
-  const [isCrmSyncing, setIsCrmSyncing] = useState<boolean>(false);
-
-  const loadCrmData = async (forceLive = false) => {
-    setIsCrmSyncing(true);
-    try {
-      const res = await fetchWacommerceOrders(forceLive);
-      setCrmOrders(res.orders);
-      setCrmSource(res.source);
-      setCrmSyncedAt(res.syncedAt);
-    } catch (err) {
-      console.error('Failed loading CRM data:', err);
-    } finally {
-      setIsCrmSyncing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadCrmData(false);
-  }, []);
-
   // Shopee OAuth Callback detector
   const [shopeeAuthResult, setShopeeAuthResult] = useState<{ code: string; shop_id: string } | null>(null);
 
@@ -271,13 +234,6 @@ export const App: React.FC = () => {
       // ignore
     }
   }, []);
-
-  const crmSummary = useMemo(() => {
-    if (crmOrders.length === 0) {
-      return mockCrmSummary;
-    }
-    return computeCrmSummary(crmOrders, crmMonth);
-  }, [crmOrders, crmMonth]);
 
   const handleMonthChange = (m: MonthName) => {
     setLiveHostMonth(m);
@@ -426,124 +382,49 @@ export const App: React.FC = () => {
     setStored((prev) => ({ ...prev, commissionParams: next }));
   };
 
-  const totalCompanyPayout = summary.totalDibayar + crmSummary.totalPayoutTim;
-  const totalCompanyOmzet =
-    summary.totalDasar +
-    mockCustomerHappinessSummary.actualRevenueAttributed +
-    crmSummary.timActualOmzet;
-  const totalBudgetSavings = summary.sisaAnggaran;
-
   const handleExport = () => {
-    if (activeTab === 'crm-cs') {
-      const headers = [
-        'Nama_CS',
-        'Status_Syarat',
-        'Poin',
-        'Leads_Baru',
-        'Outbound',
-        'Omzet_Valid',
-        'Tarif_Omzet',
-        'Komisi_Omzet',
-        'Bonus_Conversion',
-        'Bonus_Growth',
-        'Bruto',
-        'Potongan_Sistem_5pct',
-        'Bersih_Net',
-      ];
-      const csvRows = [
-        headers.join(','),
-        ...crmSummary.csList.map((cs) =>
-          [
-            `"${cs.name}"`,
-            cs.syaratLolos ? 'Lolos' : 'Belum Syarat',
-            cs.poin,
-            cs.leadsBaru,
-            cs.outbound,
-            cs.omzetValid,
-            `${(cs.tarifOmzetPct * 100).toFixed(1)}%`,
-            cs.komisiOmzet,
-            cs.bonusConversion,
-            cs.bonusGrowth,
-            cs.bruto,
-            cs.potonganSistem,
-            cs.bersih,
-          ].join(',')
-        ),
+    const headers = [
+      'Host',
+      'TikTok_Omzet',
+      'TikTok_Biaya',
+      'TikTok_Organic_G',
+      'Shopee_Omzet',
+      'Shopee_Organic_N',
+      'Dasar_Organik',
+      'Target_Host',
+      'Capaian_Pct',
+      'Hadir_Reguler',
+      'Komisi_Utama',
+      'Bonus_Kehadiran',
+      'Total_Komisi',
+    ];
+    const csvRows = [
+      headers.join(','),
+      ...hosts.map((h) =>
         [
-          `"LEADER: ${crmSummary.leaderName}"`,
-          'Lolos Target Tim',
-          '-',
-          '-',
-          '-',
-          crmSummary.timActualOmzet,
-          `${(crmSummary.leaderTarifPct * 100).toFixed(2)}%`,
-          crmSummary.leaderKomisiOmzet,
-          crmSummary.leaderBonusConversion,
-          crmSummary.leaderBonusGrowth,
-          crmSummary.leaderBruto,
-          crmSummary.leaderPotongan,
-          crmSummary.leaderBersih,
-        ].join(','),
-      ];
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `rekap-crm-${crmMonth}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    if (activeTab === 'live-host') {
-      const headers = [
-        'Host',
-        'TikTok_Omzet',
-        'TikTok_Biaya',
-        'TikTok_Organic_G',
-        'Shopee_Omzet',
-        'Shopee_Organic_N',
-        'Dasar_Organik',
-        'Target_Host',
-        'Capaian_Pct',
-        'Hadir_Reguler',
-        'Komisi_Utama',
-        'Bonus_Kehadiran',
-        'Total_Komisi',
-      ];
-      const csvRows = [
-        headers.join(','),
-        ...hosts.map((h) =>
-          [
-            h.host,
-            Math.round(h.ttOmzet),
-            Math.round(h.ttBiaya),
-            Math.round(h.ttOrganic),
-            Math.round(h.spOmzet),
-            Math.round(h.spOrganic),
-            Math.round(h.dasarOrganik),
-            h.target.total !== null ? Math.round(h.target.total) : '',
-            h.capaian !== null ? (h.capaian * 100).toFixed(2) : '',
-            h.attendanceInput?.hadir ?? '',
-            h.komisiUtama ?? '',
-            h.bonusKehadiran ?? '',
-            h.total ?? '',
-          ].join(',')
-        ),
-      ];
-      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `rekap-live-host-${liveHostMonth.toLowerCase()}-2026.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
-
-    alert(
-      `Ekspor Rekap ${activeTab.toUpperCase()} (${period}) berhasil di-generate sesuai format Brief Versi 5!`
-    );
+          h.host,
+          Math.round(h.ttOmzet),
+          Math.round(h.ttBiaya),
+          Math.round(h.ttOrganic),
+          Math.round(h.spOmzet),
+          Math.round(h.spOrganic),
+          Math.round(h.dasarOrganik),
+          h.target.total !== null ? Math.round(h.target.total) : '',
+          h.capaian !== null ? (h.capaian * 100).toFixed(2) : '',
+          h.attendanceInput?.hadir ?? '',
+          h.komisiUtama ?? '',
+          h.bonusKehadiran ?? '',
+          h.total ?? '',
+        ].join(',')
+      ),
+    ];
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rekap-live-host-${liveHostMonth.toLowerCase()}-2026.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -551,9 +432,9 @@ export const App: React.FC = () => {
       <Header
         period={period}
         onPeriodChange={setPeriod}
-        totalCompanyPayout={totalCompanyPayout}
-        totalCompanyOmzet={totalCompanyOmzet}
-        totalBudgetSavings={totalBudgetSavings}
+        totalCompanyPayout={summary.totalDibayar}
+        totalCompanyOmzet={summary.totalDasar}
+        totalBudgetSavings={summary.sisaAnggaran}
         onExport={handleExport}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
       />
@@ -591,60 +472,28 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <NavigationTabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        liveHostCount={hosts.length}
-        happinessScore={mockCustomerHappinessSummary.totalScore}
-        crmCsCount={crmSummary.csList.length}
-      />
-
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {activeTab === 'live-host' && (
-          <LiveHostModule
-            month={liveHostMonth}
-            onMonthChange={handleMonthChange}
-            aggregate={aggregate}
-            summary={summary}
-            hosts={hosts}
-            organicParams={currentOrganicParams}
-            onOrganicParamsChange={updateOrganicParams}
-            targetInput={currentTargetInput}
-            onTargetDivisiChange={updateTargetDivisi}
-            commissionParams={stored.commissionParams}
-            onCommissionParamsChange={updateCommissionParams}
-            attendanceMap={currentAttendanceMap}
-            onQuickHadirChange={updateQuickHadir}
-            onSelectHost={(host) => setSelectedHostName(host.host)}
-            sourceMode={sourceMode}
-            fetchedAt={fetchedAt}
-            onRefreshSheets={() => loadData(true)}
-            isRefreshing={isRefreshing}
-            onOpenSyncModal={() => setIsSyncModalOpen(true)}
-          />
-        )}
-
-        {activeTab === 'customer-happiness' && (
-          <CustomerHappinessModule summary={mockCustomerHappinessSummary} />
-        )}
-
-        {activeTab === 'crm-cs' && (
-          <CrmModule
-            summary={crmSummary}
-            selectedMonth={crmMonth}
-            onMonthChange={setCrmMonth}
-            availableMonths={[
-              { key: '2026-09', label: 'September 2026' },
-              { key: '2026-10', label: 'Oktober 2026' },
-              { key: '2026-11', label: 'November 2026' },
-              { key: '2026-08', label: 'Agustus 2026' },
-            ]}
-            dataSource={crmSource}
-            syncedAt={crmSyncedAt}
-            isSyncing={isCrmSyncing}
-            onRefreshLive={() => loadCrmData(true)}
-          />
-        )}
+        <LiveHostModule
+          month={liveHostMonth}
+          onMonthChange={handleMonthChange}
+          aggregate={aggregate}
+          summary={summary}
+          hosts={hosts}
+          organicParams={currentOrganicParams}
+          onOrganicParamsChange={updateOrganicParams}
+          targetInput={currentTargetInput}
+          onTargetDivisiChange={updateTargetDivisi}
+          commissionParams={stored.commissionParams}
+          onCommissionParamsChange={updateCommissionParams}
+          attendanceMap={currentAttendanceMap}
+          onQuickHadirChange={updateQuickHadir}
+          onSelectHost={(host) => setSelectedHostName(host.host)}
+          sourceMode={sourceMode}
+          fetchedAt={fetchedAt}
+          onRefreshSheets={() => loadData(true)}
+          isRefreshing={isRefreshing}
+          onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        />
       </main>
 
       <HostDetailModal

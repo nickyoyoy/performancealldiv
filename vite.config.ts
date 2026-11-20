@@ -8,38 +8,6 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'wacommerce-proxy',
-      configureServer(server) {
-        server.middlewares.use('/api/wacommerce', async (req, res) => {
-          try {
-            const subPath = (req.url || '/').replace(/^\//, '');
-            const apiKey = process.env.VITE_CRM_API_KEY || '';
-            if (!apiKey) {
-              res.statusCode = 500;
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              res.end(JSON.stringify({ ok: false, error: 'VITE_CRM_API_KEY not configured' }));
-              return;
-            }
-            const targetUrl = `https://dashboard.wacommerce.id/api/public/v1/${subPath}`;
-            const fetchRes = await fetch(targetUrl, {
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                Accept: 'application/json',
-              },
-            });
-            res.statusCode = fetchRes.status;
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            const data = await fetchRes.text();
-            res.end(data);
-          } catch (err: unknown) {
-            res.statusCode = 502;
-            const message = err instanceof Error ? err.message : 'Failed to fetch from WACOMMERCE';
-            res.end(JSON.stringify({ ok: false, error: message }));
-          }
-        });
-      },
-    },
-    {
       name: 'google-sheets-proxy',
       configureServer(server) {
         server.middlewares.use('/api/raw-sheet', async (req, res) => {

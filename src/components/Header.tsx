@@ -46,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
               </span>
               <span className="hidden sm:inline-block text-2xs text-slate-400">·</span>
               <span className="hidden sm:inline-block text-2xs text-slate-500">
-                Evaluasi Kinerja &amp; Komisi Lintas Divisi
+                Performa &amp; Komisi Live Host
               </span>
             </div>
           </div>
@@ -58,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="hidden xl:flex items-center gap-3 bg-slate-50/90 border border-slate-200/80 px-3 py-1.5 rounded-xl text-2xs">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-blue-600 shrink-0" aria-hidden="true" />
-              <span className="text-slate-500">Omzet Lintas Divisi:</span>
+              <span className="text-slate-500">Omzet Organik Live:</span>
               <strong className="text-slate-900 font-bold tabular-nums">
                 {formatCurrencyIDR(totalCompanyOmzet)}
               </strong>
@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-300">|</span>
             <div className="flex items-center gap-1.5">
               <Wallet className="w-3.5 h-3.5 text-[#127a60] shrink-0" aria-hidden="true" />
-              <span className="text-slate-500">Total Payout:</span>
+              <span className="text-slate-500">Total Payout Host:</span>
               <strong className="text-[#127a60] font-bold tabular-nums">
                 {formatCurrencyIDR(totalCompanyPayout)}
               </strong>
@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold transition shadow-2xs"
           >
             <Database className="w-3.5 h-3.5 text-[#127a60]" aria-hidden="true" />
-            <span>Tab Sumber (7 Aktif)</span>
+            <span>Tab Sumber (6 Aktif)</span>
           </button>
 
           {/* Export Button */}
