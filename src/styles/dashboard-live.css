@@ -204,3 +204,6 @@
 .dl-tag.bad { border-color: #ef4444; color: #ef4444; }
 .dl-field-wide { width: 100%; }
 .dl-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* Logo marketplace */
+.dl-mp { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; flex: none; display: inline-block; }

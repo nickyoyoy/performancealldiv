@@ -23,6 +23,9 @@ interface LiveDashboardProps {
   targetInput: TargetInput;
 }
 
+const TT_LOGO = '/marketplace/tiktok-shop.jpg';
+const SP_LOGO = '/marketplace/shopee.png';
+
 // Warna sesuai tema referensi Dashboard Live.
 const TT = '#7fa3d6';
 const TT_DARK = '#1e3a5f';
@@ -273,7 +276,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
       <div className="dl-grid dl-g2">
         <section className="dl-card light">
           <div className="dl-head">
-            <span className="dl-ico tt">T</span>
+            <img src={TT_LOGO} alt="TikTok Shop" className="dl-mp" />
             <h3 className="dl-h" style={{ color: TT_DARK }}>Omzet TikTok</h3>
           </div>
           <div className="dl-body">
@@ -286,7 +289,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         </section>
         <section className="dl-card light">
           <div className="dl-head">
-            <span className="dl-ico sp">S</span>
+            <img src={SP_LOGO} alt="Shopee" className="dl-mp" />
             <h3 className="dl-h" style={{ color: SP_SOLID }}>Omzet Shopee</h3>
           </div>
           <div className="dl-body">
@@ -445,7 +448,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         <TopFive
           title="5 Besar TikTok"
           subtitle="Omzet TikTok"
-          icon={<span className="dl-ico tt">T</span>}
+          icon={<img src={TT_LOGO} alt="TikTok Shop" className="dl-mp" />}
           items={top5TT}
           field="tt"
           total={omzetTT}
@@ -455,7 +458,7 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
         <TopFive
           title="5 Besar Shopee"
           subtitle="Omzet Shopee"
-          icon={<span className="dl-ico sp">S</span>}
+          icon={<img src={SP_LOGO} alt="Shopee" className="dl-mp" />}
           items={top5SP}
           field="sp"
           total={omzetSP}
