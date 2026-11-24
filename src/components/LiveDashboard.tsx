@@ -583,25 +583,6 @@ export const LiveDashboard: React.FC<LiveDashboardProps> = ({
                 </tr>
               )}
             </tbody>
-            {filteredRows.length > 0 && (
-              <tfoot>
-                <tr>
-                  <td>Total ({filteredRows.length} host)</td>
-                  {visible.sessions && <td>{totalSessions}</td>}
-                  {visible.target && <td className="r">{formatCurrencyIDR(targetTotal)}</td>}
-                  {visible.omzet && <td className="r">{formatCurrencyIDR(omzetTotal)}</td>}
-                  {visible.achievement && <td className="r">{achTotal === null ? '—' : formatPercent(achTotal, 1)}</td>}
-                  {visible.prev && <td className="r">{prevAggregate ? formatCurrencyIDR(prevTotal) : '—'}</td>}
-                  {visible.growth && (
-                    <td className="r">
-                      <GrowthCell value={growthOf(omzetTotal, prevTotal)} />
-                    </td>
-                  )}
-                  {visible.tt && <td className="r">{formatCurrencyIDR(omzetTT)}</td>}
-                  {visible.sp && <td className="r">{formatCurrencyIDR(omzetSP)}</td>}
-                </tr>
-              </tfoot>
-            )}
           </table>
         </div>
       </section>
