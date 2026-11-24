@@ -80,7 +80,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-semibold transition shadow-2xs"
           >
             <Database className="w-3.5 h-3.5 text-[#127a60]" aria-hidden="true" />
-            <span>Tab Sumber (6 Aktif)</span>
+            <span>Spreadsheet Utama (1)</span>
           </button>
 
           {/* Export Button */}

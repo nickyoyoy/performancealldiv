@@ -10,7 +10,6 @@ import {
 } from '../utils/liveHostEngine';
 
 export const NEW_SPREADSHEET_ID = '18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M';
-const LEGACY_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
 export const NEW_SHEET_GIDS = {
   DATABASE_LIVE: '57956472',
@@ -415,10 +414,7 @@ async function fetchSheetText(
   if (preferLive) {
     const urls = [
       `/api/raw-sheet?sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`,
-      directExportUrl ||
-        `https://docs.google.com/spreadsheets/d/${LEGACY_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
-          sheetName
-        )}&_t=${Date.now()}`,
+      ...(directExportUrl ? [directExportUrl] : []),
     ];
     for (const url of urls) {
       try {
@@ -516,7 +512,6 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
     adsSpNewRes,
     rawAdsTtRes,
     masterTargetRes,
-    legacyAdsSpRes,
     supabaseShopeeRows,
   ] = await Promise.all([
     fetchSheetText(
@@ -549,7 +544,6 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.MASTER_TARGET)
     ),
-    fetchSheetText('Ads Shopee', '/data/Ads_Shopee.csv', false),
     fetchShopeeRowsFromSupabase(),
   ]);
 
@@ -602,21 +596,9 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   tiktok.push(...adsTtDaily.rows);
 
   // 3. Shopee Ads rows:
-  //    - Historical Jan-Sep from Ads_Shopee.csv
-  //    - Operational Oct 2026+ from 10_ADS_SHOPEE (only when filled; blank stays null)
-  const legacyAds = parseCsvRows(legacyAdsSpRes.text)
-    .map((r) => ({
-      marketplace: (r['Marketplace'] || '').trim(),
-      month: (r['Bulan'] || '').trim(),
-      nominal: parseNum(r['Nominal']),
-    }))
-    .filter(
-      (a) =>
-        a.marketplace.toLowerCase() === 'shopee' &&
-        !dbLive.monthsPresent.has(a.month as MonthName)
-    );
-
-  const ads: AdsRow[] = [...legacyAds];
+  //    - All months from 10_ADS_SHOPEE (only when filled; blank stays null)
+  // Semua biaya Ads Shopee (Jan–Dec 2026) diinput di 10_ADS_SHOPEE.
+  const ads: AdsRow[] = [];
   for (const [month, nominal] of adsSpNew.entries()) {
     ads.push({ marketplace: 'Shopee', month, nominal });
   }

@@ -1,5 +1,4 @@
 const NEW_SPREADSHEET_ID = '18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M';
-const LEGACY_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
 const SHEET_ROUTES = {
   '03_DATABASE_LIVE': { id: NEW_SPREADSHEET_ID, gid: '57956472' },
@@ -7,10 +6,6 @@ const SHEET_ROUTES = {
   '10_ADS_SHOPEE': { id: NEW_SPREADSHEET_ID, gid: '272235882' },
   'RAW ADS TT': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
   '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
-  // Legacy routes kept for Jan-Sep historical fallback
-  'ADS Tiktok': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
-  'Ads Shopee': { id: LEGACY_SPREADSHEET_ID, sheet: 'Ads Shopee' },
-  'Shopee JAN 26': { id: LEGACY_SPREADSHEET_ID, sheet: 'Shopee JAN 26' },
 };
 
 export default async function handler(req, res) {
