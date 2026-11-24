@@ -6,6 +6,7 @@ import {
   DEFAULT_NAME_RULES,
   HostCommission,
   MONTH_LABEL_ID,
+  MONTHS,
   MonthName,
   OrganicParams,
   RawData,
@@ -21,7 +22,21 @@ import {
 } from './utils/liveHostEngine';
 import { fetchLiveHostRawData, SheetDivisionTarget } from './services/liveHostDataSource';
 import { Header } from './components/Header';
-import { LiveHostModule } from './components/LiveHostModule';
+import { ViewToolbar, ViewKey } from './components/ViewToolbar';
+import { LiveDashboard } from './components/LiveDashboard';
+import { KomisiDashboard } from './components/KomisiDashboard';
+import { SkemaKomisi } from './components/SkemaKomisi';
+import { LoginScreen } from './components/LoginScreen';
+import { AccountSettings } from './components/AccountSettings';
+import { AdminUsers } from './components/AdminUsers';
+import { AppSession, getSession, logout, readSessionSync } from './services/auth';
+import {
+  ROLE_LABEL,
+  ROLE_VIEWS,
+  canExportCommission,
+  canSyncSources,
+  canView,
+} from './utils/permissions';
 import { HostDetailModal } from './components/HostDetailModal';
 import {
   DataSourceSyncModal,
@@ -69,6 +84,20 @@ export const App: React.FC = () => {
   const [period, setPeriod] = useState<string>('November 2026');
   const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('November');
   const [selectedHostName, setSelectedHostName] = useState<string | null>(null);
+  const [view, setView] = useState<ViewKey>('live');
+  const [session, setSession] = useState<AppSession | null>(() => readSessionSync());
+
+  // Perbarui / verifikasi token saat aplikasi dibuka.
+  useEffect(() => {
+    getSession().then((s) => setSession(s));
+  }, []);
+
+  // Pastikan tab aktif selalu boleh dibuka oleh role yang login.
+  useEffect(() => {
+    if (session && !canView(session.role, view)) {
+      setView(ROLE_VIEWS[session.role][0]);
+    }
+  }, [session, view]);
 
   const [rawData, setRawData] = useState<RawData>({ tiktok: [], shopee: [], ads: [] });
   const [sheetAttendance, setSheetAttendance] = useState<
@@ -185,6 +214,8 @@ export const App: React.FC = () => {
       // ignore
     }
   }, []);
+
+  const isNewSchemeMonth = MONTHS.indexOf(liveHostMonth) >= MONTHS.indexOf('September');
 
   const handleMonthChange = (m: MonthName) => {
     setLiveHostMonth(m);
@@ -393,6 +424,12 @@ export const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (!session) {
+    return <LoginScreen onLogin={(s) => setSession(s)} />;
+  }
+
+  const role = session.role;
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
       <Header
@@ -403,6 +440,14 @@ export const App: React.FC = () => {
         totalBudgetSavings={summary.sisaAnggaran}
         onExport={handleExport}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        showCommissionSummary={canView(role, 'komisi')}
+        canSync={canSyncSources(role)}
+        canExport={canExportCommission(role)}
+        userLabel={`${session.email} · ${ROLE_LABEL[role]}`}
+        onLogout={() => {
+          logout();
+          setSession(null);
+        }}
       />
 
       {shopeeAuthResult && (
@@ -438,28 +483,70 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <LiveHostModule
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+        <ViewToolbar
+          allowedViews={ROLE_VIEWS[role]}
+          view={view}
+          onViewChange={setView}
           month={liveHostMonth}
           onMonthChange={handleMonthChange}
-          aggregate={aggregate}
-          summary={summary}
-          hosts={hosts}
-          organicParams={currentOrganicParams}
-          onOrganicParamsChange={updateOrganicParams}
-          targetInput={currentTargetInput}
-          onTargetDivisiChange={updateTargetDivisi}
-          commissionParams={stored.commissionParams}
-          onCommissionParamsChange={updateCommissionParams}
-          attendanceMap={currentAttendanceMap}
-          onQuickHadirChange={updateQuickHadir}
-          onSelectHost={(host) => setSelectedHostName(host.host)}
-          sourceMode={sourceMode}
-          fetchedAt={fetchedAt}
           onRefreshSheets={() => loadData(true)}
           isRefreshing={isRefreshing}
-          onOpenSyncModal={() => setIsSyncModalOpen(true)}
+          sourceMode={sourceMode}
+          fetchedAt={fetchedAt}
         />
+
+        {view === 'live' && (
+          <LiveDashboard
+            month={liveHostMonth}
+            aggregate={aggregate}
+            summary={summary}
+            hosts={hosts}
+            targetInput={currentTargetInput}
+          />
+        )}
+
+        {(view === 'komisi' || view === 'skema') && !isNewSchemeMonth && (
+          <div role="alert" className="bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-700">
+            <b className="font-semibold">{MONTH_LABEL_ID[liveHostMonth]} 2026 memakai skema komisi lama</b> (cut-off Agustus 2026).
+            Skema baru berlaku mulai September 2026, jadi angka komisi di bulan ini hanya sebagai referensi.
+          </div>
+        )}
+
+        {view === 'komisi' && (
+          <KomisiDashboard
+            month={liveHostMonth}
+            summary={summary}
+            hosts={hosts}
+            commissionParams={stored.commissionParams}
+            onSelectHost={(host) => setSelectedHostName(host.host)}
+          />
+        )}
+
+        {view === 'pengguna' && role === 'owner' && <AdminUsers />}
+
+        {view === 'akun' && (
+          <AccountSettings
+            session={session}
+            onLogout={() => setSession(null)}
+          />
+        )}
+
+        {view === 'skema' && (
+          <SkemaKomisi
+            month={liveHostMonth}
+            hosts={hosts}
+            targetInput={currentTargetInput}
+            onTargetDivisiChange={updateTargetDivisi}
+            onUpdateManualTarget={updateManualTarget}
+            organicParams={currentOrganicParams}
+            onOrganicParamsChange={updateOrganicParams}
+            commissionParams={stored.commissionParams}
+            onCommissionParamsChange={updateCommissionParams}
+            attendanceMap={currentAttendanceMap}
+            onQuickHadirChange={updateQuickHadir}
+          />
+        )}
       </main>
 
       <HostDetailModal

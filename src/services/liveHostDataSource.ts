@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { getAccessToken } from './auth';
 import {
   AdsRow,
   AttendanceInput,
@@ -10,7 +11,6 @@ import {
 } from '../utils/liveHostEngine';
 
 export const NEW_SPREADSHEET_ID = '18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M';
-const LEGACY_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
 export const NEW_SHEET_GIDS = {
   DATABASE_LIVE: '57956472',
@@ -415,16 +415,18 @@ async function fetchSheetText(
   if (preferLive) {
     const urls = [
       `/api/raw-sheet?sheet=${encodeURIComponent(sheetName)}&_t=${Date.now()}`,
-      directExportUrl ||
-        `https://docs.google.com/spreadsheets/d/${LEGACY_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
-          sheetName
-        )}&_t=${Date.now()}`,
+      ...(directExportUrl ? [directExportUrl] : []),
     ];
     for (const url of urls) {
       try {
         const controller = new AbortController();
         const tid = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+        const token = url.startsWith('/api/') ? getAccessToken() : null;
+        const res = await fetch(url, {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         clearTimeout(tid);
         if (res.ok) {
           const text = await res.text();
@@ -438,7 +440,11 @@ async function fetchSheetText(
     }
   }
 
-  const res = await fetch(localPath);
+  const token = localPath.startsWith('/api/') ? getAccessToken() : null;
+  const res = await fetch(localPath, {
+    cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   if (!res.ok) {
     throw new Error(`Gagal memuat data ${sheetName} (${res.status})`);
   }
@@ -516,40 +522,38 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
     adsSpNewRes,
     rawAdsTtRes,
     masterTargetRes,
-    legacyAdsSpRes,
     supabaseShopeeRows,
   ] = await Promise.all([
     fetchSheetText(
       '03_DATABASE_LIVE',
-      '/data/03_DATABASE_LIVE.csv',
+      '/api/snapshot?file=03_DATABASE_LIVE.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.DATABASE_LIVE)
     ),
     fetchSheetText(
       '09_ADS_TIKTOK',
-      '/data/09_ADS_TIKTOK.csv',
+      '/api/snapshot?file=09_ADS_TIKTOK.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.ADS_TIKTOK)
     ),
     fetchSheetText(
       '10_ADS_SHOPEE',
-      '/data/10_ADS_SHOPEE.csv',
+      '/api/snapshot?file=10_ADS_SHOPEE.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.ADS_SHOPEE)
     ),
     fetchSheetText(
       'RAW ADS TT',
-      '/data/RAW_ADS_TT.csv',
+      '/api/snapshot?file=RAW_ADS_TT.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.RAW_ADS_TT)
     ),
     fetchSheetText(
       '04_MASTER_TARGET',
-      '/data/04_MASTER_TARGET.csv',
+      '/api/snapshot?file=04_MASTER_TARGET.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.MASTER_TARGET)
     ),
-    fetchSheetText('Ads Shopee', '/data/Ads_Shopee.csv', false),
     fetchShopeeRowsFromSupabase(),
   ]);
 
@@ -566,7 +570,7 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   if (supabaseShopeeRows && supabaseShopeeRows.length > 0) {
     historicalShopee = supabaseShopeeRows;
   } else {
-    const spRes = await fetchSheetText('Shopee JAN 26', '/data/Shopee_JAN_26.csv', false);
+    const spRes = await fetchSheetText('Shopee JAN 26', '/api/snapshot?file=Shopee_JAN_26.csv', false);
     historicalShopee = parseCsvRows(spRes.text).map((r) => ({
       host: (r['Nama Host'] || '').trim(),
       month: (r['Bulan'] || '').trim(),
@@ -602,21 +606,9 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   tiktok.push(...adsTtDaily.rows);
 
   // 3. Shopee Ads rows:
-  //    - Historical Jan-Sep from Ads_Shopee.csv
-  //    - Operational Oct 2026+ from 10_ADS_SHOPEE (only when filled; blank stays null)
-  const legacyAds = parseCsvRows(legacyAdsSpRes.text)
-    .map((r) => ({
-      marketplace: (r['Marketplace'] || '').trim(),
-      month: (r['Bulan'] || '').trim(),
-      nominal: parseNum(r['Nominal']),
-    }))
-    .filter(
-      (a) =>
-        a.marketplace.toLowerCase() === 'shopee' &&
-        !dbLive.monthsPresent.has(a.month as MonthName)
-    );
-
-  const ads: AdsRow[] = [...legacyAds];
+  //    - All months from 10_ADS_SHOPEE (only when filled; blank stays null)
+  // Semua biaya Ads Shopee (Jan–Dec 2026) diinput di 10_ADS_SHOPEE.
+  const ads: AdsRow[] = [];
   for (const [month, nominal] of adsSpNew.entries()) {
     ads.push({ marketplace: 'Shopee', month, nominal });
   }
