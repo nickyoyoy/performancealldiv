@@ -332,10 +332,10 @@ export function evaluateAttendance(a: AttendanceInput | undefined, shiftWajib: n
   }
   if (shiftWajib <= 0) return { kehadiran: null, tarif: null, warning: 'Shift wajib harus > 0' };
   const sum = (a.hadir ?? 0) + (a.izin ?? 0) + (a.sakit ?? 0) + (a.cuti ?? 0) + (a.alpa ?? 0);
-  const anyOther = [a.izin, a.sakit, a.cuti, a.alpa].some((v) => v !== undefined && v !== null);
+  const anyOther = [a.izin, a.sakit, a.cuti, a.alpa].some((v) => v !== undefined && v !== null && v > 0);
   const warning =
-    anyOther && sum !== shiftWajib
-      ? `Hadir + izin + sakit + cuti + alpa = ${sum}, tidak sama dengan shift wajib ${shiftWajib}`
+    anyOther && a.hadir < shiftWajib && sum < shiftWajib
+      ? `Hadir + izin + sakit + cuti + alpa = ${sum}, masih di bawah shift wajib ${shiftWajib}`
       : null;
   const kehadiran = Math.min(1, a.hadir / shiftWajib); // backup tidak menambah hadir reguler
   return { kehadiran, tarif: tarifKehadiran(kehadiran), warning };
@@ -502,13 +502,18 @@ export const DEFAULT_TARGETS_BY_MONTH: Partial<Record<MonthName, TargetInput>> =
     },
   },
   October: {
-    divisiTikTok: 1820000000,
-    divisiShopee: 980000000,
+    divisiTikTok: 1700000000,
+    divisiShopee: 1000000000,
     manual: {},
   },
   November: {
-    divisiTikTok: 1820000000,
-    divisiShopee: 980000000,
+    divisiTikTok: 2000000000,
+    divisiShopee: 2000000000,
+    manual: {},
+  },
+  December: {
+    divisiTikTok: 2000000000,
+    divisiShopee: 2000000000,
     manual: {},
   },
 };

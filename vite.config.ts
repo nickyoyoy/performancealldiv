@@ -1,8 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-const RAW_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
-const ALLOWED_SHEETS = new Set(['ADS Tiktok', 'Shopee JAN 26', 'Ads Shopee']);
+const NEW_SPREADSHEET_ID = '18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M';
+const LEGACY_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
+
+const SHEET_ROUTES: Record<string, { id: string; gid?: string; sheet?: string }> = {
+  '03_DATABASE_LIVE': { id: NEW_SPREADSHEET_ID, gid: '57956472' },
+  '09_ADS_TIKTOK': { id: NEW_SPREADSHEET_ID, gid: '1140318085' },
+  '10_ADS_SHOPEE': { id: NEW_SPREADSHEET_ID, gid: '272235882' },
+  'RAW ADS TT': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
+  '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
+  'ADS Tiktok': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
+  'Ads Shopee': { id: LEGACY_SPREADSHEET_ID, sheet: 'Ads Shopee' },
+  'Shopee JAN 26': { id: LEGACY_SPREADSHEET_ID, sheet: 'Shopee JAN 26' },
+};
 
 export default defineConfig({
   plugins: [
@@ -14,17 +25,17 @@ export default defineConfig({
           try {
             const url = new URL(req.url || '/', 'http://localhost');
             const sheet = url.searchParams.get('sheet') || '';
-            if (!ALLOWED_SHEETS.has(sheet)) {
+            const route = SHEET_ROUTES[sheet];
+            if (!route) {
               res.statusCode = 400;
               res.end('Sheet not allowed');
               return;
             }
-            const SHEET_GIDS: Record<string, string> = {
-              'ADS Tiktok': '906647422',
-            };
-            const targetUrl = SHEET_GIDS[sheet]
-              ? `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/export?format=csv&gid=${SHEET_GIDS[sheet]}`
-              : `https://docs.google.com/spreadsheets/d/${RAW_SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}&_t=${Date.now()}`;
+            const targetUrl = route.gid
+              ? `https://docs.google.com/spreadsheets/d/${route.id}/export?format=csv&gid=${route.gid}`
+              : `https://docs.google.com/spreadsheets/d/${route.id}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(
+                  route.sheet || sheet
+                )}&_t=${Date.now()}`;
             const fetchRes = await fetch(targetUrl, {
               redirect: 'follow',
               headers: {

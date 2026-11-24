@@ -112,7 +112,7 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
               Komisi &amp; Bonus Live Host · {MONTH_LABEL_ID[month]} 2026
             </h2>
             <p className="text-2xs text-slate-500 truncate mt-0.5">
-              Sumber: ADS Tiktok (Pendapatan kotor &amp; Biaya) + Shopee Live (Siap Dikirim) + Ads Shopee.
+              Sumber: 03_DATABASE_LIVE (Direct GMV &amp; Absensi) + 09_ADS_TIKTOK + 10_ADS_SHOPEE + RAW ADS TT.
             </p>
           </div>
         </div>
@@ -128,7 +128,7 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
             onChange={(e) => onMonthChange(e.target.value as MonthName)}
             className="px-3 py-1.5 rounded-xl border border-slate-200/90 bg-slate-50 hover:bg-slate-100/80 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#127a60] transition"
           >
-            {MONTHS.slice(0, 10).map((m) => (
+            {MONTHS.map((m) => (
               <option key={m} value={m}>
                 {MONTH_LABEL_ID[m]} 2026
               </option>
@@ -159,9 +159,9 @@ export const LiveHostModule: React.FC<LiveHostModuleProps> = ({
           <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" aria-hidden="true" />
           <div>
             <b className="font-semibold">Data bulan {MONTH_LABEL_ID[month]} belum lengkap:</b>{' '}
-            {!aggregate.hasTikTok && 'Data ADS Tiktok belum tersedia. '}
-            {!aggregate.hasShopee && 'Data Shopee Live (Siap Dikirim) belum tersedia. '}
-            {aggregate.shopeeAdsTotal === null && 'Data Ads Shopee bulan ini belum tersedia.'}
+            {!aggregate.hasTikTok && 'Data TikTok Live (03_DATABASE_LIVE / RAW ADS TT) belum tersedia. '}
+            {!aggregate.hasShopee && 'Data Shopee Live (03_DATABASE_LIVE) belum tersedia. '}
+            {aggregate.shopeeAdsTotal === null && 'Data Ads Shopee bulan ini (10_ADS_SHOPEE) belum diinput.'}
           </div>
         </div>
       )}

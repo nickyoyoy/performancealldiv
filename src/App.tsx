@@ -19,7 +19,7 @@ import {
   computeOrganic,
   previousMonths,
 } from './utils/liveHostEngine';
-import { fetchLiveHostRawData } from './services/liveHostDataSource';
+import { fetchLiveHostRawData, SheetDivisionTarget } from './services/liveHostDataSource';
 import { Header } from './components/Header';
 import { LiveHostModule } from './components/LiveHostModule';
 import { HostDetailModal } from './components/HostDetailModal';
@@ -29,8 +29,8 @@ import {
   INITIAL_DATA_SOURCES,
 } from './components/DataSourceSyncModal';
 
-const STORAGE_KEY = 'scentplus_live_host_web_state_v1';
-const DATA_SOURCES_STORAGE_KEY = 'scentplus_live_host_data_sources_v2';
+const STORAGE_KEY = 'scentplus_live_host_web_state_v2';
+const DATA_SOURCES_STORAGE_KEY = 'scentplus_live_host_data_sources_v3';
 
 interface StoredLiveHostState {
   adjByMonth: Partial<Record<MonthName, OrganicParams>>;
@@ -44,48 +44,10 @@ function loadStoredState(): StoredLiveHostState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<StoredLiveHostState>;
-      const targetsByMonth = {
-        ...DEFAULT_TARGETS_BY_MONTH,
-        ...(parsed.targetsByMonth || {}),
-      };
-      if (
-        !targetsByMonth.September?.divisiTikTok &&
-        (!targetsByMonth.September?.manual || Object.keys(targetsByMonth.September.manual).length === 0)
-      ) {
-        targetsByMonth.September = DEFAULT_TARGETS_BY_MONTH.September!;
-      }
-
-      const attendanceByMonth = {
-        ...DEFAULT_ATTENDANCE_BY_MONTH,
-        ...(parsed.attendanceByMonth || {}),
-      };
-      if (!attendanceByMonth.September || Object.keys(attendanceByMonth.September).length === 0) {
-        attendanceByMonth.September = DEFAULT_ATTENDANCE_BY_MONTH.September!;
-      } else {
-        if (attendanceByMonth.September.GISCA?.hadir === 26) {
-          attendanceByMonth.September.GISCA = DEFAULT_ATTENDANCE_BY_MONTH.September!.GISCA;
-        }
-        if (attendanceByMonth.September.ARNIE?.hadir === 25) {
-          attendanceByMonth.September.ARNIE = DEFAULT_ATTENDANCE_BY_MONTH.September!.ARNIE;
-        }
-        for (const [h, def] of Object.entries(DEFAULT_ATTENDANCE_BY_MONTH.September || {})) {
-          if (def.keterangan && attendanceByMonth.September[h] && !attendanceByMonth.September[h].keterangan) {
-            attendanceByMonth.September[h] = {
-              ...attendanceByMonth.September[h],
-              keterangan: def.keterangan,
-            };
-          }
-        }
-      }
-
-      if (!attendanceByMonth.October || Object.keys(attendanceByMonth.October).length === 0) {
-        attendanceByMonth.October = DEFAULT_ATTENDANCE_BY_MONTH.October!;
-      }
-
       return {
         adjByMonth: parsed.adjByMonth || {},
-        targetsByMonth,
-        attendanceByMonth,
+        targetsByMonth: parsed.targetsByMonth || {},
+        attendanceByMonth: parsed.attendanceByMonth || {},
         commissionParams: {
           ...DEFAULT_COMMISSION_PARAMS,
           ...(parsed.commissionParams || {}),
@@ -97,18 +59,24 @@ function loadStoredState(): StoredLiveHostState {
   }
   return {
     adjByMonth: {},
-    targetsByMonth: { ...DEFAULT_TARGETS_BY_MONTH },
-    attendanceByMonth: { ...DEFAULT_ATTENDANCE_BY_MONTH },
+    targetsByMonth: {},
+    attendanceByMonth: {},
     commissionParams: DEFAULT_COMMISSION_PARAMS,
   };
 }
 
 export const App: React.FC = () => {
-  const [period, setPeriod] = useState<string>('September 2026');
-  const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('September');
+  const [period, setPeriod] = useState<string>('November 2026');
+  const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('November');
   const [selectedHostName, setSelectedHostName] = useState<string | null>(null);
 
   const [rawData, setRawData] = useState<RawData>({ tiktok: [], shopee: [], ads: [] });
+  const [sheetAttendance, setSheetAttendance] = useState<
+    Partial<Record<MonthName, Record<string, AttendanceInput>>>
+  >({});
+  const [sheetTargets, setSheetTargets] = useState<
+    Partial<Record<MonthName, SheetDivisionTarget>>
+  >({});
   const [sourceMode, setSourceMode] = useState<'live' | 'snapshot' | 'loading'>('loading');
   const [fetchedAt, setFetchedAt] = useState<string>('');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -147,27 +115,8 @@ export const App: React.FC = () => {
     setDataSources((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
   };
 
-  const handleSyncSingleDataSource = async (item: DataSourceItem) => {
-    if (item.id === 'attendance_schedule') {
-      const tabLower = item.selectedTab.toLowerCase();
-      if (tabLower.includes('okt') || tabLower.includes('oct')) {
-        setStored((prev) => ({
-          ...prev,
-          attendanceByMonth: {
-            ...prev.attendanceByMonth,
-            October: DEFAULT_ATTENDANCE_BY_MONTH.October || {},
-          },
-        }));
-      } else if (tabLower.includes('sep')) {
-        setStored((prev) => ({
-          ...prev,
-          attendanceByMonth: {
-            ...prev.attendanceByMonth,
-            September: DEFAULT_ATTENDANCE_BY_MONTH.September || {},
-          },
-        }));
-      }
-    }
+  const handleSyncSingleDataSource = async () => {
+    await loadData(true);
   };
 
   const handleSyncAllDataSources = async () => {
@@ -205,6 +154,8 @@ export const App: React.FC = () => {
     try {
       const res = await fetchLiveHostRawData(preferLive);
       setRawData(res.rawData);
+      setSheetAttendance(res.sheetAttendance);
+      setSheetTargets(res.sheetTargets);
       setSourceMode(res.sourceMode);
       setFetchedAt(res.fetchedAt);
     } catch (err) {
@@ -215,7 +166,7 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadData(false);
+    loadData(true);
   }, []);
 
   // Shopee OAuth Callback detector
@@ -244,17 +195,32 @@ export const App: React.FC = () => {
     stored.adjByMonth[liveHostMonth] ??
     SPREADSHEET_ADJ_DEFAULTS[liveHostMonth] ?? { adjTikTok: 0, adjShopee: 0 };
 
-  const currentTargetInput: TargetInput =
-    stored.targetsByMonth[liveHostMonth] ??
-    DEFAULT_TARGETS_BY_MONTH[liveHostMonth] ?? {
-      divisiTikTok: null,
-      divisiShopee: null,
-      manual: {},
-    };
+  const currentTargetInput: TargetInput = useMemo(() => {
+    const defTarget = DEFAULT_TARGETS_BY_MONTH[liveHostMonth];
+    const sheetTarget = sheetTargets[liveHostMonth];
+    const userTarget = stored.targetsByMonth[liveHostMonth];
 
-  const currentAttendanceMap: Record<string, AttendanceInput> =
-    stored.attendanceByMonth[liveHostMonth] ??
-    DEFAULT_ATTENDANCE_BY_MONTH[liveHostMonth] ?? {};
+    const baseTikTok = sheetTarget?.divisiTikTok ?? defTarget?.divisiTikTok ?? null;
+    const baseShopee = sheetTarget?.divisiShopee ?? defTarget?.divisiShopee ?? null;
+
+    return {
+      divisiTikTok: userTarget?.divisiTikTok ?? baseTikTok,
+      divisiShopee: userTarget?.divisiShopee ?? baseShopee,
+      manual: {
+        ...(defTarget?.manual || {}),
+        ...(userTarget?.manual || {}),
+      },
+    };
+  }, [liveHostMonth, sheetTargets, stored.targetsByMonth]);
+
+  const currentAttendanceMap: Record<string, AttendanceInput> = useMemo(
+    () => ({
+      ...(DEFAULT_ATTENDANCE_BY_MONTH[liveHostMonth] || {}),
+      ...(sheetAttendance[liveHostMonth] || {}),
+      ...(stored.attendanceByMonth[liveHostMonth] || {}),
+    }),
+    [liveHostMonth, sheetAttendance, stored.attendanceByMonth]
+  );
 
   const { aggregate, hosts, summary } = useMemo(() => {
     const agg = aggregateMonth(rawData, liveHostMonth, DEFAULT_NAME_RULES);
