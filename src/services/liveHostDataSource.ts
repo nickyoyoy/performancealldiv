@@ -1,4 +1,5 @@
 import Papa from 'papaparse';
+import { getAccessToken } from './auth';
 import {
   AdsRow,
   AttendanceInput,
@@ -420,7 +421,12 @@ async function fetchSheetText(
       try {
         const controller = new AbortController();
         const tid = setTimeout(() => controller.abort(), 8000);
-        const res = await fetch(url, { signal: controller.signal, cache: 'no-store' });
+        const token = url.startsWith('/api/') ? getAccessToken() : null;
+        const res = await fetch(url, {
+          signal: controller.signal,
+          cache: 'no-store',
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         clearTimeout(tid);
         if (res.ok) {
           const text = await res.text();

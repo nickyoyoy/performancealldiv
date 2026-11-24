@@ -26,6 +26,17 @@ import { ViewToolbar, ViewKey } from './components/ViewToolbar';
 import { LiveDashboard } from './components/LiveDashboard';
 import { KomisiDashboard } from './components/KomisiDashboard';
 import { SkemaKomisi } from './components/SkemaKomisi';
+import { LoginScreen } from './components/LoginScreen';
+import { AccountSettings } from './components/AccountSettings';
+import { AdminUsers } from './components/AdminUsers';
+import { AppSession, getSession, logout, readSessionSync } from './services/auth';
+import {
+  ROLE_LABEL,
+  ROLE_VIEWS,
+  canExportCommission,
+  canSyncSources,
+  canView,
+} from './utils/permissions';
 import { HostDetailModal } from './components/HostDetailModal';
 import {
   DataSourceSyncModal,
@@ -74,6 +85,19 @@ export const App: React.FC = () => {
   const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('November');
   const [selectedHostName, setSelectedHostName] = useState<string | null>(null);
   const [view, setView] = useState<ViewKey>('live');
+  const [session, setSession] = useState<AppSession | null>(() => readSessionSync());
+
+  // Perbarui / verifikasi token saat aplikasi dibuka.
+  useEffect(() => {
+    getSession().then((s) => setSession(s));
+  }, []);
+
+  // Pastikan tab aktif selalu boleh dibuka oleh role yang login.
+  useEffect(() => {
+    if (session && !canView(session.role, view)) {
+      setView(ROLE_VIEWS[session.role][0]);
+    }
+  }, [session, view]);
 
   const [rawData, setRawData] = useState<RawData>({ tiktok: [], shopee: [], ads: [] });
   const [sheetAttendance, setSheetAttendance] = useState<
@@ -400,6 +424,12 @@ export const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (!session) {
+    return <LoginScreen onLogin={(s) => setSession(s)} />;
+  }
+
+  const role = session.role;
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
       <Header
@@ -410,6 +440,14 @@ export const App: React.FC = () => {
         totalBudgetSavings={summary.sisaAnggaran}
         onExport={handleExport}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
+        showCommissionSummary={canView(role, 'komisi')}
+        canSync={canSyncSources(role)}
+        canExport={canExportCommission(role)}
+        userLabel={`${session.email} · ${ROLE_LABEL[role]}`}
+        onLogout={() => {
+          logout();
+          setSession(null);
+        }}
       />
 
       {shopeeAuthResult && (
@@ -447,6 +485,7 @@ export const App: React.FC = () => {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
         <ViewToolbar
+          allowedViews={ROLE_VIEWS[role]}
           view={view}
           onViewChange={setView}
           month={liveHostMonth}
@@ -481,6 +520,15 @@ export const App: React.FC = () => {
             hosts={hosts}
             commissionParams={stored.commissionParams}
             onSelectHost={(host) => setSelectedHostName(host.host)}
+          />
+        )}
+
+        {view === 'pengguna' && role === 'owner' && <AdminUsers />}
+
+        {view === 'akun' && (
+          <AccountSettings
+            session={session}
+            onLogout={() => setSession(null)}
           />
         )}
 

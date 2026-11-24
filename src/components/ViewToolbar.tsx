@@ -1,8 +1,8 @@
 import React from 'react';
-import { RefreshCw, Radio, Calculator, SlidersHorizontal } from 'lucide-react';
+import { RefreshCw, Radio, Calculator, SlidersHorizontal, UserCog, Users } from 'lucide-react';
 import { MONTHS, MONTH_LABEL_ID, MonthName } from '../utils/liveHostEngine';
 
-export type ViewKey = 'live' | 'komisi' | 'skema';
+export type ViewKey = 'live' | 'komisi' | 'skema' | 'akun' | 'pengguna';
 
 const VIEWS: { key: ViewKey; label: string; hint: string; icon: React.ReactNode }[] = [
   {
@@ -23,9 +23,22 @@ const VIEWS: { key: ViewKey; label: string; hint: string; icon: React.ReactNode 
     hint: 'Target & parameter',
     icon: <SlidersHorizontal className="w-3.5 h-3.5" aria-hidden="true" />,
   },
+  {
+    key: 'akun',
+    label: 'Pengaturan Akun',
+    hint: 'Profil & password',
+    icon: <UserCog className="w-3.5 h-3.5" aria-hidden="true" />,
+  },
+  {
+    key: 'pengguna',
+    label: 'Kelola Pengguna',
+    hint: 'Akun & role',
+    icon: <Users className="w-3.5 h-3.5" aria-hidden="true" />,
+  },
 ];
 
 interface ViewToolbarProps {
+  allowedViews: ViewKey[];
   view: ViewKey;
   onViewChange: (v: ViewKey) => void;
   month: MonthName;
@@ -37,6 +50,7 @@ interface ViewToolbarProps {
 }
 
 export const ViewToolbar: React.FC<ViewToolbarProps> = ({
+  allowedViews,
   view,
   onViewChange,
   month,
@@ -49,8 +63,8 @@ export const ViewToolbar: React.FC<ViewToolbarProps> = ({
   return (
     <div className="bg-white rounded-xl px-4 py-3 border border-slate-200/80 shadow-2xs flex flex-col gap-3">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div role="tablist" aria-label="Pilih tampilan" className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
-          {VIEWS.map((v) => {
+        <div role="tablist" aria-label="Pilih tampilan" className="grid grid-cols-1 gap-2 w-full lg:w-auto" style={{ gridTemplateColumns: `repeat(${Math.min(5, allowedViews.length)}, minmax(0, 1fr))` }}>
+          {VIEWS.filter((v) => allowedViews.includes(v.key)).map((v) => {
             const active = view === v.key;
             return (
               <button

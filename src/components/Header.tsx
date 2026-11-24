@@ -16,6 +16,12 @@ interface HeaderProps {
   totalBudgetSavings: number;
   onExport: () => void;
   onOpenSyncModal: () => void;
+  /** Role-based visibility */
+  showCommissionSummary?: boolean;
+  canSync?: boolean;
+  canExport?: boolean;
+  userLabel?: string;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +29,11 @@ export const Header: React.FC<HeaderProps> = ({
   totalCompanyOmzet,
   onExport,
   onOpenSyncModal,
+  showCommissionSummary = true,
+  canSync = true,
+  canExport = true,
+  userLabel,
+  onLogout,
 }) => {
   return (
     <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 backdrop-blur-md bg-white/95">
@@ -55,6 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Center/Right: Compact Executive Summary Pills + Global Actions */}
         <div className="flex items-center flex-wrap gap-2">
           {/* Compact Inline Executive Summary */}
+          {showCommissionSummary && (
           <div className="hidden xl:flex items-center gap-3 bg-slate-50/90 border border-slate-200/80 px-3 py-1.5 rounded-xl text-2xs">
             <div className="flex items-center gap-1.5">
               <TrendingUp className="w-3.5 h-3.5 text-blue-600 shrink-0" aria-hidden="true" />
@@ -72,8 +84,10 @@ export const Header: React.FC<HeaderProps> = ({
               </strong>
             </div>
           </div>
+          )}
 
-          {/* Data Source & Tab Sync Button (Single Global Button) */}
+          {/* Data Source & Tab Sync Button (Owner only) */}
+          {canSync && (
           <button
             type="button"
             onClick={onOpenSyncModal}
@@ -82,8 +96,10 @@ export const Header: React.FC<HeaderProps> = ({
             <Database className="w-3.5 h-3.5 text-[#127a60]" aria-hidden="true" />
             <span>Spreadsheet Utama (1)</span>
           </button>
+          )}
 
           {/* Export Button */}
+          {canExport && (
           <button
             type="button"
             onClick={onExport}
@@ -92,6 +108,18 @@ export const Header: React.FC<HeaderProps> = ({
             <Download className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Ekspor CSV</span>
           </button>
+          )}
+
+          {userLabel && (
+            <div className="flex items-center gap-2 pl-2 ml-1 border-l border-slate-200">
+              <span className="text-2xs text-slate-600">{userLabel}</span>
+              {onLogout && (
+                <button type="button" onClick={onLogout} className="text-2xs font-semibold text-rose-700 hover:underline">
+                  Keluar
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>

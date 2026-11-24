@@ -8,8 +8,37 @@ const SHEET_ROUTES = {
   '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
 };
 
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://pkcjdhxwyjgldkciplvs.supabase.co';
+const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
+const ALLOWED_ROLES = ['owner', 'admin', 'finance', 'live_team'];
+
+/** Verifikasi token Supabase dan pastikan user punya role aplikasi. */
+async function requireRole(req) {
+  const auth = req.headers?.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!token) return null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    const user = await r.json();
+    const role = user?.app_metadata?.role;
+    return ALLOWED_ROLES.includes(role) ? role : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req, res) {
   try {
+    const role = await requireRole(req);
+    if (!role) {
+      res.statusCode = 401;
+      return res.end('Unauthorized');
+    }
+
     const { sheet } = req.query || {};
     const route = sheet ? SHEET_ROUTES[sheet] : null;
 
