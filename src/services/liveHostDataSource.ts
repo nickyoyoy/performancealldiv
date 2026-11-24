@@ -6,6 +6,7 @@ import {
   MONTHS,
   MonthName,
   RawData,
+  SessionRow,
   ShopeeRow,
   TikTokRow,
 } from '../utils/liveHostEngine';
@@ -153,6 +154,7 @@ export interface SheetDivisionTarget {
 }
 
 interface DatabaseLiveParsed {
+  sessions: SessionRow[];
   tiktokOmzet: TikTokRow[];
   shopee: ShopeeRow[];
   monthsPresent: Set<MonthName>;
@@ -173,6 +175,7 @@ function parseDatabaseLiveCsv(csvText: string): DatabaseLiveParsed {
   const idxBackup = findCol(header, 'Indikator Backup', 29);
 
   const tiktokOmzet: TikTokRow[] = [];
+  const sessions: SessionRow[] = [];
   const shopee: ShopeeRow[] = [];
   const monthsPresent = new Set<MonthName>();
 
@@ -212,6 +215,7 @@ function parseDatabaseLiveCsv(csvText: string): DatabaseLiveParsed {
 
     if (host && (plat === 'tiktok' || plat === 'shopee')) {
       monthsPresent.add(month);
+      sessions.push({ host, month, platform: plat as 'tiktok' | 'shopee' });
       if (plat === 'tiktok') {
         tiktokOmzet.push({ host, month, omzet: gmv, biaya: 0 });
       } else {
@@ -261,7 +265,7 @@ function parseDatabaseLiveCsv(csvText: string): DatabaseLiveParsed {
     }
   }
 
-  return { tiktokOmzet, shopee, monthsPresent, attendanceByMonth };
+  return { sessions, tiktokOmzet, shopee, monthsPresent, attendanceByMonth };
 }
 
 function parseAdsTiktokDailyCsv(csvText: string): {
@@ -616,7 +620,7 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   const isLive = dbLiveRes.source === 'live' && adsTtDailyRes.source === 'live';
 
   return {
-    rawData: { tiktok, shopee, ads },
+    rawData: { tiktok, shopee, ads, sessions: dbLive.sessions },
     sheetAttendance: dbLive.attendanceByMonth,
     sheetTargets,
     sourceMode: isLive ? 'live' : 'snapshot',

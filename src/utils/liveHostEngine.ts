@@ -34,10 +34,14 @@ export interface TikTokRow { host: string; month: string; omzet: number; biaya: 
 export interface ShopeeRow { host: string; month: string; omzet: number }
 export interface AdsRow { marketplace: string; month: string; nominal: number }
 
+export interface SessionRow { host: string; month: string; platform: 'tiktok' | 'shopee' }
+
 export interface RawData {
   tiktok: TikTokRow[];
   shopee: ShopeeRow[];
   ads: AdsRow[];
+  /** satu baris per sesi live (dari 03_DATABASE_LIVE) */
+  sessions?: SessionRow[];
 }
 
 // ---------- Host name normalisation ----------
@@ -66,6 +70,8 @@ export interface MonthAggregate {
   month: MonthName;
   tiktok: Map<string, { omzet: number; biaya: number; rows: number }>;
   shopee: Map<string, { omzet: number; rows: number }>;
+  /** jumlah sesi live per host (TikTok + Shopee) */
+  sessions: Map<string, number>;
   shopeeAdsTotal: number | null; // null = belum ada sumber
   hasTikTok: boolean;
   hasShopee: boolean;
@@ -113,10 +119,19 @@ export function aggregateMonth(raw: RawData, month: MonthName, rules: NameRules)
 
   const adsRow = raw.ads.find((a) => a.month === month && a.marketplace.toLowerCase() === 'shopee');
 
+  const sessions = new Map<string, number>();
+  for (const r of raw.sessions ?? []) {
+    if (r.month !== month) continue;
+    const host = normaliseHost(r.host, rules);
+    if (!host) continue;
+    sessions.set(host, (sessions.get(host) ?? 0) + 1);
+  }
+
   return {
     month,
     tiktok,
     shopee,
+    sessions,
     shopeeAdsTotal: adsRow ? adsRow.nominal : null,
     hasTikTok: ttRows > 0,
     hasShopee: spRows > 0,

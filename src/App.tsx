@@ -253,6 +253,25 @@ export const App: React.FC = () => {
     [liveHostMonth, sheetAttendance, stored.attendanceByMonth]
   );
 
+  const prevMonth: MonthName | null = previousMonths(liveHostMonth, 1)[0] ?? null;
+  const prevAggregate = useMemo(
+    () => (prevMonth ? aggregateMonth(rawData, prevMonth, DEFAULT_NAME_RULES) : null),
+    [rawData, prevMonth]
+  );
+
+  // Tren 3 bulan terakhir (termasuk bulan yang dipilih) untuk ringkasan.
+  const trend = useMemo(() => {
+    const months = [...previousMonths(liveHostMonth, 2).reverse(), liveHostMonth];
+    return months.map((m) => {
+      const a = aggregateMonth(rawData, m, DEFAULT_NAME_RULES);
+      return {
+        month: m,
+        tt: [...a.tiktok.values()].reduce((s, v) => s + v.omzet, 0),
+        sp: [...a.shopee.values()].reduce((s, v) => s + v.omzet, 0),
+      };
+    });
+  }, [rawData, liveHostMonth]);
+
   const { aggregate, hosts, summary } = useMemo(() => {
     const agg = aggregateMonth(rawData, liveHostMonth, DEFAULT_NAME_RULES);
     const organic = computeOrganic(agg, currentOrganicParams);
@@ -499,6 +518,9 @@ export const App: React.FC = () => {
         {view === 'live' && (
           <LiveDashboard
             month={liveHostMonth}
+            prevMonth={prevMonth}
+            prevAggregate={prevAggregate}
+            trend={trend}
             aggregate={aggregate}
             summary={summary}
             hosts={hosts}
