@@ -1,5 +1,10 @@
 {
   "framework": "vite",
+  "functions": {
+    "api/snapshot.js": {
+      "includeFiles": "snapshot/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -11,4 +16,3 @@
     }
   ]
 }
-

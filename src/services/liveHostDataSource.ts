@@ -440,7 +440,11 @@ async function fetchSheetText(
     }
   }
 
-  const res = await fetch(localPath);
+  const token = localPath.startsWith('/api/') ? getAccessToken() : null;
+  const res = await fetch(localPath, {
+    cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
   if (!res.ok) {
     throw new Error(`Gagal memuat data ${sheetName} (${res.status})`);
   }
@@ -522,31 +526,31 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   ] = await Promise.all([
     fetchSheetText(
       '03_DATABASE_LIVE',
-      '/data/03_DATABASE_LIVE.csv',
+      '/api/snapshot?file=03_DATABASE_LIVE.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.DATABASE_LIVE)
     ),
     fetchSheetText(
       '09_ADS_TIKTOK',
-      '/data/09_ADS_TIKTOK.csv',
+      '/api/snapshot?file=09_ADS_TIKTOK.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.ADS_TIKTOK)
     ),
     fetchSheetText(
       '10_ADS_SHOPEE',
-      '/data/10_ADS_SHOPEE.csv',
+      '/api/snapshot?file=10_ADS_SHOPEE.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.ADS_SHOPEE)
     ),
     fetchSheetText(
       'RAW ADS TT',
-      '/data/RAW_ADS_TT.csv',
+      '/api/snapshot?file=RAW_ADS_TT.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.RAW_ADS_TT)
     ),
     fetchSheetText(
       '04_MASTER_TARGET',
-      '/data/04_MASTER_TARGET.csv',
+      '/api/snapshot?file=04_MASTER_TARGET.csv',
       preferLive,
       newExportUrl(NEW_SHEET_GIDS.MASTER_TARGET)
     ),
@@ -566,7 +570,7 @@ export async function fetchLiveHostRawData(preferLive = true): Promise<LiveHostF
   if (supabaseShopeeRows && supabaseShopeeRows.length > 0) {
     historicalShopee = supabaseShopeeRows;
   } else {
-    const spRes = await fetchSheetText('Shopee JAN 26', '/data/Shopee_JAN_26.csv', false);
+    const spRes = await fetchSheetText('Shopee JAN 26', '/api/snapshot?file=Shopee_JAN_26.csv', false);
     historicalShopee = parseCsvRows(spRes.text).map((r) => ({
       host: (r['Nama Host'] || '').trim(),
       month: (r['Bulan'] || '').trim(),

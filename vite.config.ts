@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const NEW_SPREADSHEET_ID = '18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M';
-const LEGACY_SPREADSHEET_ID = '1fGXGUmm5Ask-Iw9tQRUmqKIp8Z6dNvS3-9e8SxVR1LE';
 
 const SHEET_ROUTES: Record<string, { id: string; gid?: string; sheet?: string }> = {
   '03_DATABASE_LIVE': { id: NEW_SPREADSHEET_ID, gid: '57956472' },
@@ -10,9 +11,6 @@ const SHEET_ROUTES: Record<string, { id: string; gid?: string; sheet?: string }>
   '10_ADS_SHOPEE': { id: NEW_SPREADSHEET_ID, gid: '272235882' },
   'RAW ADS TT': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
   '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
-  'ADS Tiktok': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
-  'Ads Shopee': { id: LEGACY_SPREADSHEET_ID, sheet: 'Ads Shopee' },
-  'Shopee JAN 26': { id: LEGACY_SPREADSHEET_ID, sheet: 'Shopee JAN 26' },
 };
 
 export default defineConfig({
@@ -21,6 +19,21 @@ export default defineConfig({
     {
       name: 'google-sheets-proxy',
       configureServer(server) {
+        // Dev only: snapshot CSV tanpa login (produksi memakai api/snapshot.js yang butuh role).
+        server.middlewares.use('/api/snapshot', (req, res) => {
+          const file = new URL(req.url || '/', 'http://localhost').searchParams.get('file') || '';
+          if (!/^[A-Za-z0-9_]+\.csv$/.test(file)) {
+            res.statusCode = 404;
+            return res.end('Not found');
+          }
+          try {
+            res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+            res.end(readFileSync(fileURLToPath(new URL(`./snapshot/${file}`, import.meta.url)), 'utf8'));
+          } catch {
+            res.statusCode = 404;
+            res.end('Not found');
+          }
+        });
         server.middlewares.use('/api/raw-sheet', async (req, res) => {
           try {
             const url = new URL(req.url || '/', 'http://localhost');
