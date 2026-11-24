@@ -1,5 +1,5 @@
 import type { AppRole } from '../services/auth';
-import type { ViewKey } from '../components/ViewToolbar';
+import type { ViewKey } from '../components/Sidebar';
 
 export const ROLE_LABEL: Record<AppRole, string> = {
   owner: 'Owner',

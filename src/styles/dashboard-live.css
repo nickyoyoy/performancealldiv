@@ -1,0 +1,206 @@
+/* Tema Dashboard Live (mengikuti referensi Dashboard-Live-Host). Semua class berawalan dl-. */
+:root {
+  --dl-bg: #f5f5f5;
+  --dl-card: #111111;
+  --dl-head: #1a1a1a;
+  --dl-border: #262626;
+  --dl-ink: #ffffff;
+  --dl-ink2: #bdbdbd;
+  --dl-muted: #a3a3a3;
+  --dl-tt: #7fa3d6;
+  --dl-tt-dark: #1e3a5f;
+  --dl-sp: #ff8a6b;
+  --dl-sp-solid: #ee4d2d;
+  --dl-good: #22c55e;
+  --dl-bad: #ef4444;
+}
+.dl-root {
+  font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+  color: var(--dl-ink);
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--dl-bg);
+  background-image: radial-gradient(#d9d9d9 1px, transparent 1px);
+  background-size: 20px 20px;
+  border-radius: 20px;
+  padding: 16px;
+}
+.dl-root *, .dl-root *::before, .dl-root *::after { box-sizing: border-box; }
+.dl-stack { display: flex; flex-direction: column; gap: 16px; }
+.dl-grid { display: grid; gap: 16px; }
+.dl-g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dl-g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dl-g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dl-g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1024px) {
+  .dl-g3, .dl-g4, .dl-g5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dl-g2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .dl-g3, .dl-g4, .dl-g5 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Kartu */
+.dl-card {
+  background: var(--dl-card);
+  color: var(--dl-ink);
+  border: 1px solid var(--dl-border);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 #000, 0 2px 0 #0a0a0a, 0 3px 0 #000, 0 4px 0 #0a0a0a, 0 24px 32px -12px rgba(0,0,0,.55);
+}
+.dl-card.light {
+  background: #ffffff;
+  border-color: #e5e5e5;
+  color: #111111;
+  box-shadow: inset 0 1px 0 #fff, 0 1px 0 #bdbdbd, 0 2px 0 #9a9a9a, 0 8px 14px -6px rgba(0,0,0,.35);
+}
+.dl-card.light .dl-head { background: #f7f7f7; border-bottom-color: #e5e5e5; }
+.dl-head {
+  background: var(--dl-head);
+  border-bottom: 1px solid var(--dl-border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dl-body { padding: 20px; }
+.dl-h { font-weight: 700; font-size: 15px; letter-spacing: -.01em; margin: 0; }
+.dl-sub { color: var(--dl-muted); font-size: 12px; font-weight: 500; margin: 2px 0 0; }
+.dl-card.light .dl-sub { color: #6b6b6b; }
+.dl-lbl { font-size: 11px; font-weight: 700; color: var(--dl-ink2); letter-spacing: .09em; text-transform: uppercase; }
+.dl-card.light .dl-lbl { color: #6b6b6b; }
+.dl-num { font-size: 26px; font-weight: 800; letter-spacing: -.025em; font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.2; }
+.dl-num-lg { font-size: 32px; }
+.dl-num-sm { font-size: 18px; }
+.dl-muted { color: var(--dl-muted); font-size: 12px; font-weight: 500; }
+.dl-card.light .dl-muted { color: #6b6b6b; }
+.dl-up { color: #4ade80; font-weight: 800; }
+.dl-down { color: #f87171; font-weight: 700; }
+.dl-card.light .dl-up { color: #15803d; }
+.dl-card.light .dl-down { color: #b91c1c; }
+.dl-tt-t { color: var(--dl-tt); }
+.dl-sp-t { color: var(--dl-sp); }
+
+/* Ikon / chip */
+.dl-ico {
+  width: 28px; height: 28px; border-radius: 8px; background: #fff; color: #111;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800; flex: none;
+}
+.dl-ico.tt { background: var(--dl-tt-dark); color: #fff; }
+.dl-ico.sp { background: var(--dl-sp-solid); color: #fff; }
+.dl-rank {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 800;
+  padding: 0 6px; background: #fff; color: #111; margin-right: 8px; flex: none;
+}
+.dl-pill {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
+  border-radius: 99px; padding: 4px 11px; border: 1px solid transparent; white-space: nowrap;
+}
+.dl-pill.tt { background: var(--dl-tt); color: #111; }
+.dl-pill.sp { background: var(--dl-sp-solid); color: #fff; }
+.dl-pill.count { background: #fff; color: #111; }
+
+/* Bar */
+.dl-bar { height: 8px; background: #2e2e2e; border-radius: 99px; overflow: hidden; }
+.dl-card.light .dl-bar { background: #e5e5e5; }
+.dl-bar > i { display: block; height: 100%; border-radius: 99px; }
+
+/* Hero */
+.dl-hero {
+  background: #000; color: #fff; border: 1px solid var(--dl-border); border-radius: 20px;
+  padding: 28px; display: grid; grid-template-columns: minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);
+  gap: 28px; align-items: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 1px 0 #000, 0 2px 0 #0a0a0a, 0 3px 0 #000, 0 4px 0 #0a0a0a, 0 26px 34px -14px rgba(0,0,0,.6);
+}
+@media (max-width: 900px) { .dl-hero { grid-template-columns: minmax(0,1fr); } }
+
+/* Segmen & kontrol */
+.dl-seg { display: inline-flex; border: 1px solid #333; border-radius: 10px; overflow: hidden; }
+.dl-seg button { border: 0; background: #111; padding: 7px 12px; color: var(--dl-ink2); font-weight: 600; font: inherit; font-size: 12px; cursor: pointer; }
+.dl-seg button[aria-pressed="true"] { background: #fff; color: #111; }
+.dl-card.light .dl-seg { border-color: #d4d4d4; }
+.dl-card.light .dl-seg button { background: #fff; color: #444; }
+.dl-card.light .dl-seg button[aria-pressed="true"] { background: #111; color: #fff; }
+.dl-field {
+  border: 1px solid #333; border-radius: 10px; padding: 8px 12px; background: #1a1a1a; color: #fff;
+  font: inherit; font-size: 12px; min-height: 36px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 0 #000, 0 3px 6px -2px rgba(0,0,0,.6);
+}
+.dl-field::placeholder { color: #777; }
+.dl-field:focus { outline: 2px solid #fff; outline-offset: 1px; }
+.dl-sel { position: relative; display: inline-block; }
+.dl-sel select { appearance: none; -webkit-appearance: none; padding-right: 34px; cursor: pointer; }
+.dl-sel::after {
+  content: ""; position: absolute; right: 14px; top: 50%; border-left: 5px solid transparent;
+  border-right: 5px solid transparent; border-top: 6px solid #fff; transform: translateY(-50%); pointer-events: none;
+}
+.dl-btn {
+  border: 1px solid #333; border-radius: 10px; background: #1a1a1a; color: #fff; font: inherit;
+  font-size: 12px; font-weight: 600; padding: 8px 12px; cursor: pointer;
+  box-shadow: 0 1px 0 #000, 0 3px 6px -2px rgba(0,0,0,.6);
+}
+.dl-btn[aria-expanded="true"] { background: #fff; color: #111; }
+.dl-menu {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: 220px; background: #fff; color: #111;
+  border-radius: 12px; border: 1px solid #ddd; box-shadow: 0 12px 24px -8px rgba(0,0,0,.4); padding: 8px;
+}
+.dl-menu label { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+.dl-menu label:hover { background: #f3f3f3; }
+
+/* Tabel */
+.dl-table-wrap { overflow-x: auto; }
+.dl-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dl-table th {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #6b6b6b; text-align: left;
+  font-weight: 700; padding: 12px; border-bottom: 1px solid #e5e5e5; white-space: nowrap; background: #fafafa;
+}
+.dl-table th.r, .dl-table td.r { text-align: right; }
+.dl-table td { padding: 12px; border-bottom: 1px solid #efefef; white-space: nowrap; color: #222; font-variant-numeric: tabular-nums; font-weight: 500; }
+.dl-table tbody tr:hover td { background: #f7f7f7; }
+.dl-table tr.low td:first-child { box-shadow: inset 3px 0 0 #111; }
+.dl-table tfoot td { font-weight: 800; color: #111; border-top: 2px solid #111; background: #fff; }
+.dl-table .tt-h { color: var(--dl-tt-dark); }
+.dl-table .sp-h { color: var(--dl-sp-solid); }
+.dl-ach { min-width: 130px; }
+.dl-ach .dl-bar { height: 6px; background: #e5e5e5; }
+.dl-ach small { display: block; font-size: 11px; font-weight: 700; margin-top: 4px; }
+
+/* Tile ringkasan */
+.dl-tile { color: var(--dl-ink); border: 1px solid var(--dl-border); border-radius: 14px; padding: 16px; background: var(--dl-head); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 1px 0 #000, 0 2px 0 #0a0a0a, 0 8px 14px -6px rgba(0,0,0,.7); }
+.dl-tile.white { background: #fff; color: #111; border-color: #fff; }
+.dl-tile.tt { border-left: 3px solid var(--dl-tt); }
+.dl-tile.sp { border-left: 3px solid var(--dl-sp-solid); }
+
+/* Alert */
+.dl-alert { background: #111; border: 1px solid var(--dl-border); border-left: 4px solid #fff; border-radius: 14px; padding: 12px 16px; font-size: 12px; color: #fff; display: flex; gap: 8px; box-shadow: 0 1px 0 #000, 0 6px 12px -6px rgba(0,0,0,.6); }
+
+/* Donut */
+.dl-donut-wrap { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.dl-legend-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; }
+.dl-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
+.dl-root ol, .dl-root ul { list-style: none; margin: 0; padding: 0; }
+.dl-root h3, .dl-root p { margin-top: 0; }
+
+/* ---------- Tabel di dalam kartu gelap ---------- */
+.dl-card:not(.light) .dl-table th { background: #1a1a1a; color: #a3a3a3; border-bottom-color: #262626; }
+.dl-card:not(.light) .dl-table td { color: #e5e5e5; border-bottom-color: #1f1f1f; }
+.dl-card:not(.light) .dl-table tbody tr:hover td { background: #1a1a1a; }
+.dl-card:not(.light) .dl-table tfoot td { background: #111; color: #fff; border-top-color: #fff; }
+.dl-card:not(.light) .dl-table tbody tr { cursor: default; }
+.dl-card:not(.light) .dl-table tbody tr.clickable { cursor: pointer; }
+.dl-card:not(.light) .dl-table tbody tr.clickable:hover td { background: #1f1f1f; }
+
+/* Blok input/teks pendukung */
+.dl-stack-tight { display: flex; flex-direction: column; gap: 10px; }
+.dl-split { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: #2e2e2e; }
+.dl-split > i { display: block; height: 100%; }
+.dl-tag { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; border-radius: 99px; padding: 3px 10px; border: 1px solid #333; color: #fff; background: #1a1a1a; }
+.dl-tag.good { border-color: #22c55e; color: #22c55e; }
+.dl-tag.warn { border-color: #eab308; color: #eab308; }
+.dl-tag.bad { border-color: #ef4444; color: #ef4444; }
+.dl-field-wide { width: 100%; }
+.dl-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }

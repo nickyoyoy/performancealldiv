@@ -22,7 +22,8 @@ import {
 } from './utils/liveHostEngine';
 import { fetchLiveHostRawData, SheetDivisionTarget } from './services/liveHostDataSource';
 import { Header } from './components/Header';
-import { ViewToolbar, ViewKey } from './components/ViewToolbar';
+import { ViewToolbar } from './components/ViewToolbar';
+import { Sidebar, VIEWS, ViewKey } from './components/Sidebar';
 import { LiveDashboard } from './components/LiveDashboard';
 import { KomisiDashboard } from './components/KomisiDashboard';
 import { SkemaKomisi } from './components/SkemaKomisi';
@@ -81,10 +82,28 @@ function loadStoredState(): StoredLiveHostState {
 }
 
 export const App: React.FC = () => {
-  const [period, setPeriod] = useState<string>('November 2026');
+  const [, setPeriod] = useState<string>('November 2026');
   const [liveHostMonth, setLiveHostMonth] = useState<MonthName>('November');
   const [selectedHostName, setSelectedHostName] = useState<string | null>(null);
   const [view, setView] = useState<ViewKey>('live');
+  const [sidebarHidden, setSidebarHidden] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('scentplus_sidebar_hidden') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleSidebar = () => {
+    setSidebarHidden((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem('scentplus_sidebar_hidden', next ? '1' : '0');
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
   const [session, setSession] = useState<AppSession | null>(() => readSessionSync());
 
   // Perbarui / verifikasi token saat aplikasi dibuka.
@@ -450,13 +469,17 @@ export const App: React.FC = () => {
   const role = session.role;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
+    <div className="sh-root">
+      {!sidebarHidden && (
+        <Sidebar view={view} allowedViews={ROLE_VIEWS[role]} onViewChange={setView} />
+      )}
+      <div className="sh-main">
       <Header
-        period={period}
-        onPeriodChange={setPeriod}
+        pageTitle={VIEWS.find((v) => v.key === view)?.label ?? ''}
+        sidebarHidden={sidebarHidden}
+        onToggleSidebar={toggleSidebar}
         totalCompanyPayout={summary.totalDibayar}
         totalCompanyOmzet={summary.totalDasar}
-        totalBudgetSavings={summary.sisaAnggaran}
         onExport={handleExport}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
         showCommissionSummary={canView(role, 'komisi')}
@@ -502,11 +525,9 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+      <main className="sh-content">
         <ViewToolbar
-          allowedViews={ROLE_VIEWS[role]}
-          view={view}
-          onViewChange={setView}
+          title={VIEWS.find((v) => v.key === view)?.hint ?? ''}
           month={liveHostMonth}
           onMonthChange={handleMonthChange}
           onRefreshSheets={() => loadData(true)}
@@ -570,6 +591,7 @@ export const App: React.FC = () => {
           />
         )}
       </main>
+      </div>
 
       <HostDetailModal
         host={selectedHost}

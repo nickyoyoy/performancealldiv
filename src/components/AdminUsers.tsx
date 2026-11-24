@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { RefreshCw, UserPlus, Trash2, KeyRound } from 'lucide-react';
 import { APP_ROLES, AppRole, getAccessToken } from '../services/auth';
 import { ROLE_LABEL } from '../utils/permissions';
+import '../styles/dashboard-live.css';
 
 interface AdminUser {
   id: string;
@@ -95,63 +96,52 @@ export const AdminUsers: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="dl-stack">
       {notice && (
-        <div
-          role="alert"
-          className={`text-xs rounded-lg px-3 py-2 border ${
-            notice.type === 'ok'
-              ? 'text-emerald-800 bg-emerald-50 border-emerald-200'
-              : 'text-rose-700 bg-rose-50 border-rose-200'
-          }`}
-        >
+        <div role="alert" className={`dl-tag ${notice.type === 'ok' ? 'good' : 'bad'}`} style={{ borderRadius: 10, padding: '8px 12px' }}>
           {notice.text}
         </div>
       )}
 
-      <section className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-card">
-        <div className="flex items-center justify-between gap-3 mb-4">
+      <section className="dl-card">
+        <div className="dl-head" style={{ justifyContent: 'space-between' }}>
           <div>
-            <h3 className="font-bold text-sm text-slate-900">Akun Pengguna</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{users.length} akun terdaftar. Hanya Owner yang bisa melihat halaman ini.</p>
+            <h3 className="dl-h">Akun Pengguna</h3>
+            <p className="dl-sub">{users.length} akun terdaftar. Hanya Owner yang bisa melihat halaman ini.</p>
           </div>
-          <button
-            type="button"
-            onClick={load}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 disabled:opacity-60"
-          >
+          <button type="button" onClick={load} disabled={loading} className="sh-btn sh-btn-outline">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
             Muat ulang
           </button>
         </div>
 
-        <div className="overflow-x-auto border border-slate-200/70 rounded-xl">
-          <table className="w-full text-left text-xs text-slate-700">
-            <thead className="bg-slate-50/80 text-slate-500 text-2xs uppercase tracking-wider font-semibold border-b border-slate-200/80">
+        <div className="dl-table-wrap">
+          <table className="dl-table">
+            <thead>
               <tr>
-                <th className="py-2.5 px-4">Email</th>
-                <th className="py-2.5 px-3">Role</th>
-                <th className="py-2.5 px-3">Login terakhir</th>
-                <th className="py-2.5 px-4 text-right">Aksi</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Login terakhir</th>
+                <th className="r">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody>
               {users.map((u) => {
                 const isSelf = u.id === selfId;
                 return (
                   <tr key={u.id}>
-                    <td className="py-2.5 px-4 font-semibold text-slate-900">
+                    <td style={{ fontWeight: 800, color: '#fff' }}>
                       {u.email}
-                      {isSelf && <span className="ml-2 text-2xs text-emerald-700 font-semibold">(Anda)</span>}
+                      {isSelf && <span className="dl-tag good" style={{ marginLeft: 8, padding: '1px 8px' }}>Anda</span>}
                     </td>
-                    <td className="py-2.5 px-3">
+                    <td>
                       <select
+                        className="dl-field"
                         aria-label={`Role ${u.email}`}
                         value={u.role ?? ''}
                         disabled={isSelf}
                         onChange={(e) => changeRole(u, e.target.value as AppRole)}
-                        className="px-2 py-1 rounded-lg border border-slate-200 bg-white text-xs font-semibold disabled:opacity-60"
+                        style={{ padding: '6px 10px', minHeight: 0, fontWeight: 700 }}
                       >
                         {u.role === null && <option value="">— belum ada role —</option>}
                         {APP_ROLES.map((r) => (
@@ -161,24 +151,15 @@ export const AdminUsers: React.FC = () => {
                         ))}
                       </select>
                     </td>
-                    <td className="py-2.5 px-3 tabular-nums text-slate-600">{fmtDate(u.last_sign_in_at)}</td>
-                    <td className="py-2.5 px-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => resetPassword(u)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-50 font-semibold"
-                        >
-                          <KeyRound className="w-3 h-3" aria-hidden="true" />
+                    <td className="dl-muted">{fmtDate(u.last_sign_in_at)}</td>
+                    <td className="r">
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <button type="button" onClick={() => resetPassword(u)} className="dl-btn">
+                          <KeyRound className="w-3 h-3" style={{ display: 'inline', marginRight: 4 }} aria-hidden="true" />
                           Reset password
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => remove(u)}
-                          disabled={isSelf}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold disabled:opacity-40"
-                        >
-                          <Trash2 className="w-3 h-3" aria-hidden="true" />
+                        <button type="button" onClick={() => remove(u)} disabled={isSelf} className="dl-btn" style={{ borderColor: '#ef4444', color: '#f87171' }}>
+                          <Trash2 className="w-3 h-3" style={{ display: 'inline', marginRight: 4 }} aria-hidden="true" />
                           Hapus
                         </button>
                       </div>
@@ -188,7 +169,7 @@ export const AdminUsers: React.FC = () => {
               })}
               {!loading && users.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-6 text-center text-slate-500">
+                  <td colSpan={4} style={{ textAlign: 'center', color: '#737373', padding: 24 }}>
                     Belum ada akun.
                   </td>
                 </tr>
@@ -198,24 +179,20 @@ export const AdminUsers: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-card">
-        <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2 mb-4">
-          <UserPlus className="w-4 h-4 text-[#127a60]" aria-hidden="true" />
-          Tambah Akun
-        </h3>
-        <form onSubmit={create} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-          <label className="block md:col-span-1">
-            <span className="block text-2xs font-semibold text-slate-600 mb-1">Email</span>
-            <input
-              type="email"
-              required
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200/90 text-sm focus:outline-none focus:ring-2 focus:ring-[#127a60]"
-            />
+      <section className="dl-card">
+        <div className="dl-head">
+          <h3 className="dl-h flex items-center gap-2">
+            <UserPlus className="w-4 h-4" aria-hidden="true" />
+            Tambah Akun
+          </h3>
+        </div>
+        <form onSubmit={create} className="dl-body" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, alignItems: 'end' }}>
+          <label>
+            <span className="dl-lbl" style={{ display: 'block', marginBottom: 6 }}>Email</span>
+            <input type="email" required value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="dl-field" style={{ width: '100%' }} />
           </label>
-          <label className="block">
-            <span className="block text-2xs font-semibold text-slate-600 mb-1">Password awal</span>
+          <label>
+            <span className="dl-lbl" style={{ display: 'block', marginBottom: 6 }}>Password awal</span>
             <input
               type="password"
               required
@@ -223,16 +200,13 @@ export const AdminUsers: React.FC = () => {
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200/90 text-sm focus:outline-none focus:ring-2 focus:ring-[#127a60]"
+              className="dl-field"
+              style={{ width: '100%' }}
             />
           </label>
-          <label className="block">
-            <span className="block text-2xs font-semibold text-slate-600 mb-1">Role</span>
-            <select
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value as AppRole)}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200/90 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#127a60]"
-            >
+          <label>
+            <span className="dl-lbl" style={{ display: 'block', marginBottom: 6 }}>Role</span>
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value as AppRole)} className="dl-field" style={{ width: '100%' }}>
               {APP_ROLES.map((r) => (
                 <option key={r} value={r}>
                   {ROLE_LABEL[r]}
@@ -240,12 +214,11 @@ export const AdminUsers: React.FC = () => {
               ))}
             </select>
           </label>
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-[#127a60] hover:bg-[#0e634e] text-white font-semibold text-xs"
-          >
-            Buat akun
-          </button>
+          <div>
+            <button type="submit" className="sh-btn sh-btn-solid">
+              Buat akun
+            </button>
+          </div>
         </form>
       </section>
     </div>
