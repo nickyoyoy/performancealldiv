@@ -8,6 +8,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL |
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
 const ALLOWED_ROLES = ['owner', 'admin', 'finance', 'live_team'];
+// Harus sama dengan AUTH_ENABLED di src/config/auth.ts. false = login dimatikan sementara.
+const AUTH_ENABLED = false;
 const ALLOWED_FILES = new Set([
   '03_DATABASE_LIVE.csv',
   '04_MASTER_TARGET.csv',
@@ -35,7 +37,7 @@ async function hasRole(req) {
 
 export default async function handler(req, res) {
   try {
-    if (!(await hasRole(req))) {
+    if (AUTH_ENABLED && !(await hasRole(req))) {
       res.statusCode = 401;
       return res.end('Unauthorized');
     }

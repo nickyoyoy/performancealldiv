@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LogOut, KeyRound, UserRound } from 'lucide-react';
 import { AppSession, changePassword, logout } from '../services/auth';
 import { ROLE_LABEL } from '../utils/permissions';
+import { AUTH_ENABLED } from '../config/auth';
 import '../styles/dashboard-live.css';
 
 interface AccountSettingsProps {
@@ -109,6 +110,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ session, onLog
         </form>
       </section>
 
+      {AUTH_ENABLED && (
       <section className="dl-card">
         <div className="dl-body dl-label-row">
           <div>
@@ -121,6 +123,7 @@ export const AccountSettings: React.FC<AccountSettingsProps> = ({ session, onLog
           </button>
         </div>
       </section>
+      )}
     </div>
   );
 };

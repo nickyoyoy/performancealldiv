@@ -23,6 +23,7 @@ import {
 import { fetchLiveHostRawData, SheetDivisionTarget } from './services/liveHostDataSource';
 import { Header } from './components/Header';
 import { ViewToolbar } from './components/ViewToolbar';
+import { AUTH_ENABLED, GUEST_SESSION } from './config/auth';
 import { Sidebar, VIEWS, ViewKey } from './components/Sidebar';
 import { LiveDashboard } from './components/LiveDashboard';
 import { KomisiDashboard } from './components/KomisiDashboard';
@@ -104,11 +105,11 @@ export const App: React.FC = () => {
       return next;
     });
   };
-  const [session, setSession] = useState<AppSession | null>(() => readSessionSync());
+  const [session, setSession] = useState<AppSession | null>(() => (AUTH_ENABLED ? readSessionSync() : GUEST_SESSION));
 
   // Perbarui / verifikasi token saat aplikasi dibuka.
   useEffect(() => {
-    getSession().then((s) => setSession(s));
+    if (AUTH_ENABLED) getSession().then((s) => setSession(s));
   }, []);
 
   // Pastikan tab aktif selalu boleh dibuka oleh role yang login.
@@ -462,11 +463,12 @@ export const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  if (!session) {
+  if (AUTH_ENABLED && !session) {
     return <LoginScreen onLogin={(s) => setSession(s)} />;
   }
 
-  const role = session.role;
+  const current: AppSession = session ?? GUEST_SESSION;
+  const role = current.role;
 
   return (
     <div className="sh-root">
@@ -485,11 +487,15 @@ export const App: React.FC = () => {
         showCommissionSummary={canView(role, 'komisi')}
         canSync={canSyncSources(role)}
         canExport={canExportCommission(role)}
-        userLabel={`${session.email} · ${ROLE_LABEL[role]}`}
-        onLogout={() => {
-          logout();
-          setSession(null);
-        }}
+        userLabel={`${current.email} · ${ROLE_LABEL[role]}`}
+        onLogout={
+          AUTH_ENABLED
+            ? () => {
+                logout();
+                setSession(null);
+              }
+            : undefined
+        }
       />
 
       {shopeeAuthResult && (
@@ -570,7 +576,7 @@ export const App: React.FC = () => {
 
         {view === 'akun' && (
           <AccountSettings
-            session={session}
+            session={current}
             onLogout={() => setSession(null)}
           />
         )}

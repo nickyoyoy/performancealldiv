@@ -12,6 +12,8 @@ const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL |
 const SUPABASE_ANON_KEY =
   process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
 const ALLOWED_ROLES = ['owner', 'admin', 'finance', 'live_team'];
+// Harus sama dengan AUTH_ENABLED di src/config/auth.ts. false = login dimatikan sementara.
+const AUTH_ENABLED = false;
 
 /** Verifikasi token Supabase dan pastikan user punya role aplikasi. */
 async function requireRole(req) {
@@ -33,7 +35,7 @@ async function requireRole(req) {
 
 export default async function handler(req, res) {
   try {
-    const role = await requireRole(req);
+    const role = AUTH_ENABLED ? await requireRole(req) : 'owner';
     if (!role) {
       res.statusCode = 401;
       return res.end('Unauthorized');
