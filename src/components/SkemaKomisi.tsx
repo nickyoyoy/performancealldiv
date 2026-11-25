@@ -80,6 +80,49 @@ const NumField: React.FC<{
   );
 };
 
+/** Input rupiah: saat diketik hanya angka; saat keluar input tampil "Rp 2.000.000.000". */
+const MoneyField: React.FC<{
+  id: string;
+  value: number | null;
+  placeholder?: string;
+  onCommit: (v: number | null) => void;
+}> = ({ id, value, placeholder, onCommit }) => {
+  const fmt = (v: number | null | undefined) =>
+    v === null || v === undefined ? '' : `Rp ${Math.round(v).toLocaleString('id-ID')}`;
+  const [focused, setFocused] = useState(false);
+  const [draft, setDraft] = useState(fmt(value));
+
+  useEffect(() => {
+    if (!focused) setDraft(fmt(value));
+  }, [value, focused]);
+
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="numeric"
+      autoComplete="off"
+      value={focused ? draft : fmt(value)}
+      placeholder={placeholder}
+      onFocus={() => {
+        setFocused(true);
+        setDraft(value === null || value === undefined ? '' : String(Math.round(value)));
+      }}
+      onChange={(e) => setDraft(e.target.value.replace(/\D/g, ''))}
+      onBlur={() => {
+        setFocused(false);
+        const digits = draft.replace(/\D/g, '');
+        onCommit(digits === '' ? null : Number(digits));
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+      }}
+      className="dl-field tabular-nums"
+      style={{ width: '100%', fontWeight: 700 }}
+    />
+  );
+};
+
 const Section: React.FC<{ title: string; desc: string; children: React.ReactNode }> = ({ title, desc, children }) => (
   <section className="dl-card">
     <div className="dl-head">
@@ -116,6 +159,16 @@ export const SkemaKomisi: React.FC<SkemaKomisiProps> = ({
   onQuickHadirChange,
 }) => {
   const isSpreadsheet = organicParams.method === 'spreadsheet';
+  const [bulkTT, setBulkTT] = useState<number | null>(null);
+  const [bulkSP, setBulkSP] = useState<number | null>(null);
+
+  // Isi target TikTok / Shopee yang sama ke semua host. Kolom kosong di bagian isian tidak mengubah host.
+  const applyBulk = () => {
+    hosts.forEach((h) => {
+      if (bulkTT !== null) onUpdateManualTarget(h.host, 'tiktok', bulkTT);
+      if (bulkSP !== null) onUpdateManualTarget(h.host, 'shopee', bulkSP);
+    });
+  };
   const setParam = (patch: Partial<CommissionParams>) => onCommissionParamsChange({ ...commissionParams, ...patch });
 
   return (
@@ -128,10 +181,10 @@ export const SkemaKomisi: React.FC<SkemaKomisiProps> = ({
         <Section title="Target Divisi Bulanan" desc="Target gabungan per platform. Dipakai untuk menghitung capaian divisi dan faktor pengali divisi.">
           <div className="dl-grid dl-g2" style={{ gap: 12 }}>
             <Field label="Target TikTok Live (Rp)" hint="Kosong = dari 04_MASTER_TARGET">
-              <NumField id="target-tt" value={targetInput.divisiTikTok} placeholder="Kosong = dari sheet" onCommit={(v) => onTargetDivisiChange('tiktok', v)} />
+              <MoneyField id="target-tt" value={targetInput.divisiTikTok} placeholder="Rp 0" onCommit={(v) => onTargetDivisiChange('tiktok', v)} />
             </Field>
             <Field label="Target Shopee Live (Rp)" hint="Kosong = dari 04_MASTER_TARGET">
-              <NumField id="target-sp" value={targetInput.divisiShopee} placeholder="Kosong = dari sheet" onCommit={(v) => onTargetDivisiChange('shopee', v)} />
+              <MoneyField id="target-sp" value={targetInput.divisiShopee} placeholder="Rp 0" onCommit={(v) => onTargetDivisiChange('shopee', v)} />
             </Field>
           </div>
         </Section>
@@ -218,6 +271,27 @@ export const SkemaKomisi: React.FC<SkemaKomisiProps> = ({
                 <th className="r">Target Shopee (Rp)</th>
                 <th className="r">Target Dipakai (Total)</th>
               </tr>
+              <tr style={{ background: '#111' }}>
+                <td style={{ fontWeight: 800, color: '#fff', textTransform: 'uppercase', fontSize: 11, letterSpacing: '.07em' }}>
+                  Isi semua host
+                </td>
+                <td style={{ width: 200 }}>
+                  <MoneyField id="bulk-tt" value={bulkTT} placeholder="Rp 0" onCommit={setBulkTT} />
+                </td>
+                <td style={{ width: 200 }}>
+                  <MoneyField id="bulk-sp" value={bulkSP} placeholder="Rp 0" onCommit={setBulkSP} />
+                </td>
+                <td className="r">
+                  <button
+                    type="button"
+                    className="dl-btn"
+                    disabled={bulkTT === null && bulkSP === null}
+                    onClick={applyBulk}
+                  >
+                    Terapkan ke semua
+                  </button>
+                </td>
+              </tr>
             </thead>
             <tbody>
               {hosts.map((h) => {
@@ -226,10 +300,10 @@ export const SkemaKomisi: React.FC<SkemaKomisiProps> = ({
                   <tr key={h.host}>
                     <td style={{ fontWeight: 800, color: '#fff' }}>{h.host}</td>
                     <td style={{ width: 200 }}>
-                      <NumField id={`mt-tt-${h.host}`} value={manual.tiktok ?? null} placeholder={h.target.sourceTikTok === 'histori' ? 'Histori' : 'Kosong'} onCommit={(v) => onUpdateManualTarget(h.host, 'tiktok', v)} />
+                      <MoneyField id={`mt-tt-${h.host}`} value={manual.tiktok ?? null} placeholder={h.target.sourceTikTok === 'histori' ? 'Histori' : 'Kosong'} onCommit={(v) => onUpdateManualTarget(h.host, 'tiktok', v)} />
                     </td>
                     <td style={{ width: 200 }}>
-                      <NumField id={`mt-sp-${h.host}`} value={manual.shopee ?? null} placeholder={h.target.sourceShopee === 'histori' ? 'Histori' : 'Kosong'} onCommit={(v) => onUpdateManualTarget(h.host, 'shopee', v)} />
+                      <MoneyField id={`mt-sp-${h.host}`} value={manual.shopee ?? null} placeholder={h.target.sourceShopee === 'histori' ? 'Histori' : 'Kosong'} onCommit={(v) => onUpdateManualTarget(h.host, 'shopee', v)} />
                     </td>
                     <td className="r">{formatCurrencyIDR(h.target.total)}</td>
                   </tr>
