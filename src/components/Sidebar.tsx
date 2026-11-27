@@ -1,14 +1,15 @@
 import React from 'react';
-import { Radio, Calculator, SlidersHorizontal, UserCog, Users } from 'lucide-react';
+import { Radio, Calculator, SlidersHorizontal, UserCog, Users, CalendarDays } from 'lucide-react';
 import '../styles/shell.css';
 
-export type ViewKey = 'live' | 'komisi' | 'skema' | 'akun' | 'pengguna';
+export type ViewKey = 'live' | 'komisi' | 'skema' | 'kalender' | 'akun' | 'pengguna';
 
 /** Urutan menu dari atas ke bawah. */
 export const VIEWS: { key: ViewKey; label: string; hint: string; icon: React.ReactNode }[] = [
   { key: 'live', label: 'Dashboard Live', hint: 'Omzet & biaya Ads', icon: <Radio className="w-4 h-4" aria-hidden="true" /> },
   { key: 'komisi', label: 'Komisi Host Live', hint: 'Perhitungan komisi', icon: <Calculator className="w-4 h-4" aria-hidden="true" /> },
   { key: 'skema', label: 'Skema Komisi', hint: 'Target & parameter', icon: <SlidersHorizontal className="w-4 h-4" aria-hidden="true" /> },
+  { key: 'kalender', label: 'Kalender Campaign', hint: 'Promo & campaign Live', icon: <CalendarDays className="w-4 h-4" aria-hidden="true" /> },
   { key: 'akun', label: 'Pengaturan Akun', hint: 'Profil & password', icon: <UserCog className="w-4 h-4" aria-hidden="true" /> },
   { key: 'pengguna', label: 'Kelola Pengguna', hint: 'Akun & role', icon: <Users className="w-4 h-4" aria-hidden="true" /> },
 ];

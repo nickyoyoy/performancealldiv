@@ -31,6 +31,7 @@ import { SkemaKomisi } from './components/SkemaKomisi';
 import { LoginScreen } from './components/LoginScreen';
 import { AccountSettings } from './components/AccountSettings';
 import { AdminUsers } from './components/AdminUsers';
+import { CampaignCalendar } from './components/CampaignCalendar';
 import { AppSession, getSession, logout, readSessionSync } from './services/auth';
 import {
   ROLE_LABEL,
@@ -532,15 +533,17 @@ export const App: React.FC = () => {
       )}
 
       <main className="sh-content">
-        <ViewToolbar
-          title={VIEWS.find((v) => v.key === view)?.hint ?? ''}
-          month={liveHostMonth}
-          onMonthChange={handleMonthChange}
-          onRefreshSheets={() => loadData(true)}
-          isRefreshing={isRefreshing}
-          sourceMode={sourceMode}
-          fetchedAt={fetchedAt}
-        />
+        {(view === 'live' || view === 'komisi' || view === 'skema') && (
+          <ViewToolbar
+            title={VIEWS.find((v) => v.key === view)?.hint ?? ''}
+            month={liveHostMonth}
+            onMonthChange={handleMonthChange}
+            onRefreshSheets={() => loadData(true)}
+            isRefreshing={isRefreshing}
+            sourceMode={sourceMode}
+            fetchedAt={fetchedAt}
+          />
+        )}
 
         {view === 'live' && (
           <LiveDashboard
@@ -571,6 +574,8 @@ export const App: React.FC = () => {
             onSelectHost={(host) => setSelectedHostName(host.host)}
           />
         )}
+
+        {view === 'kalender' && <CampaignCalendar canEdit={role === 'owner' || role === 'admin'} />}
 
         {view === 'pengguna' && role === 'owner' && <AdminUsers />}
 

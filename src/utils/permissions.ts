@@ -10,10 +10,10 @@ export const ROLE_LABEL: Record<AppRole, string> = {
 
 /** Tab yang boleh dibuka per role. */
 export const ROLE_VIEWS: Record<AppRole, ViewKey[]> = {
-  owner: ['live', 'komisi', 'skema', 'akun', 'pengguna'],
-  admin: ['live', 'komisi', 'skema', 'akun'],
-  finance: ['komisi', 'skema', 'akun'],
-  live_team: ['live', 'akun'],
+  owner: ['live', 'komisi', 'skema', 'kalender', 'akun', 'pengguna'],
+  admin: ['live', 'komisi', 'skema', 'kalender', 'akun'],
+  finance: ['komisi', 'skema', 'kalender', 'akun'],
+  live_team: ['live', 'kalender', 'akun'],
 };
 
 export function canView(role: AppRole, view: ViewKey): boolean {

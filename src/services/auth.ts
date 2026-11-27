@@ -15,9 +15,9 @@ export interface AppSession {
   role: AppRole;
 }
 
-const SUPABASE_URL =
+export const SUPABASE_URL =
   (import.meta.env.VITE_SUPABASE_URL as string | undefined) || 'https://pkcjdhxwyjgldkciplvs.supabase.co';
-const SUPABASE_ANON_KEY =
+export const SUPABASE_ANON_KEY =
   (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ||
   'sb_publishable_LWWe_L1vDv-DCAL-NeYmcQ_nz0chcUE';
 
