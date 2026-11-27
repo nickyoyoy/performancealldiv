@@ -575,7 +575,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {view === 'kalender' && <CampaignCalendar canEdit={role === 'owner' || role === 'admin'} />}
+        {view === 'kalender' && <CampaignCalendar />}
 
         {view === 'pengguna' && role === 'owner' && <AdminUsers />}
 

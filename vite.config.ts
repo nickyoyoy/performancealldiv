@@ -11,6 +11,7 @@ const SHEET_ROUTES: Record<string, { id: string; gid?: string; sheet?: string }>
   '10_ADS_SHOPEE': { id: NEW_SPREADSHEET_ID, gid: '272235882' },
   'RAW ADS TT': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
   '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
+  '11_CAMPAIGN_CALENDAR': { id: NEW_SPREADSHEET_ID, gid: '127184724' },
 };
 
 export default defineConfig({

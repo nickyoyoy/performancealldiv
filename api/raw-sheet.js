@@ -6,6 +6,7 @@ const SHEET_ROUTES = {
   '10_ADS_SHOPEE': { id: NEW_SPREADSHEET_ID, gid: '272235882' },
   'RAW ADS TT': { id: NEW_SPREADSHEET_ID, gid: '1416190141' },
   '04_MASTER_TARGET': { id: NEW_SPREADSHEET_ID, gid: '1495963472' },
+  '11_CAMPAIGN_CALENDAR': { id: NEW_SPREADSHEET_ID, gid: '127184724' },
 };
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://pkcjdhxwyjgldkciplvs.supabase.co';

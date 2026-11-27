@@ -1,8 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
+import Papa from 'papaparse';
 import { MONTHS, MONTH_LABEL_ID } from '../utils/liveHostEngine';
+import { getAccessToken } from '../services/auth';
 import '../styles/dashboard-live.css';
-import { SUPABASE_ANON_KEY, SUPABASE_URL, getAccessToken } from '../services/auth';
+
+/** Nama tab di spreadsheet utama yang berisi jadwal campaign (dibaca saja). */
+export const CAMPAIGN_SHEET = '11_CAMPAIGN_CALENDAR';
+const SHEET_EDIT_URL = 'https://docs.google.com/spreadsheets/d/18djB-SiIrUL2HhXcC35HTmc9oCKkLoWPqe2kklf8S2M/edit';
 
 export type Platform = 'tiktok' | 'shopee' | 'semua';
 export type EventType = 'campaign' | 'promo' | 'live';
@@ -28,123 +33,103 @@ const WEEKDAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 
-/* ---------- Data: tabel Supabase public.campaign_events ---------- */
-interface EventRow {
-  id: string;
-  title: string;
-  platform: Platform;
-  type: EventType;
-  start_date: string;
-  end_date: string;
-  status: EventStatus;
-  note: string;
+/* ---------- Membaca tab spreadsheet ----------
+ * Kolom (baris pertama): Judul | Marketplace | Jenis | Tanggal Mulai | Tanggal Selesai | Status | Catatan
+ * Tanggal boleh YYYY-MM-DD atau DD/MM/YYYY. Tanggal Selesai kosong = sama dengan Tanggal Mulai.
+ */
+const norm = (s: string | undefined) => (s ?? '').trim().toLowerCase();
+
+function parseDate(raw: string | undefined): string | null {
+  const t = (raw ?? '').trim();
+  if (!t) return null;
+  const isoM = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (isoM) return `${isoM[1]}-${pad(Number(isoM[2]))}-${pad(Number(isoM[3]))}`;
+  const dmy = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${pad(Number(dmy[2]))}-${pad(Number(dmy[1]))}`;
+  return null;
 }
 
-const toEvent = (r: EventRow): CampaignEvent => ({
-  id: r.id,
-  title: r.title,
-  platform: r.platform,
-  type: r.type,
-  start: r.start_date,
-  end: r.end_date,
-  status: r.status,
-  note: r.note ?? '',
-});
-
-const toRow = (d: Omit<CampaignEvent, 'id'>) => ({
-  title: d.title,
-  platform: d.platform,
-  type: d.type,
-  start_date: d.start,
-  end_date: d.end,
-  status: d.status,
-  note: d.note,
-});
-
-function headers(json = false): Record<string, string> {
-  const token = getAccessToken() || SUPABASE_ANON_KEY;
-  return {
-    apikey: SUPABASE_ANON_KEY,
-    Authorization: `Bearer ${token}`,
-    ...(json ? { 'Content-Type': 'application/json', Prefer: 'return=minimal' } : {}),
-  };
+function toPlatform(s: string): Platform {
+  if (s.includes('tiktok')) return 'tiktok';
+  if (s.includes('shopee')) return 'shopee';
+  return 'semua';
 }
 
-async function dbError(res: Response): Promise<Error> {
-  if (res.status === 401 || res.status === 403) return new Error('Anda tidak punya izin mengubah jadwal. Masuk dengan akun Owner atau Admin.');
-  const text = await res.text().catch(() => '');
-  return new Error(text || `Gagal (${res.status})`);
+function toType(s: string): EventType {
+  if (s.includes('promo')) return 'promo';
+  if (s.includes('live')) return 'live';
+  return 'campaign';
 }
 
-async function fetchEvents(): Promise<CampaignEvent[]> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_events?select=*&order=start_date.asc`, { headers: headers() });
-  if (!res.ok) throw await dbError(res);
-  const rows = (await res.json()) as EventRow[];
-  return rows.map(toEvent);
+function toStatus(s: string): EventStatus {
+  if (s.includes('berjalan')) return 'berjalan';
+  if (s.includes('selesai')) return 'selesai';
+  return 'rencana';
 }
 
-async function insertEvent(d: Omit<CampaignEvent, 'id'>) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_events`, {
-    method: 'POST',
-    headers: headers(true),
-    body: JSON.stringify(toRow(d)),
+export function parseCampaignCsv(csv: string): CampaignEvent[] {
+  const parsed = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true });
+  const out: CampaignEvent[] = [];
+  parsed.data.forEach((row, i) => {
+    const title = (row['Judul'] ?? '').trim();
+    const start = parseDate(row['Tanggal Mulai']);
+    if (!title || !start) return;
+    const end = parseDate(row['Tanggal Selesai']) ?? start;
+    out.push({
+      id: `${i}-${title}`,
+      title,
+      platform: toPlatform(norm(row['Marketplace'])),
+      type: toType(norm(row['Jenis'])),
+      start,
+      end: end < start ? start : end,
+      status: toStatus(norm(row['Status'])),
+      note: (row['Catatan'] ?? '').trim(),
+    });
   });
-  if (!res.ok) throw await dbError(res);
+  return out.sort((a, b) => a.start.localeCompare(b.start));
 }
 
-async function updateEvent(id: string, d: Omit<CampaignEvent, 'id'>) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_events?id=eq.${encodeURIComponent(id)}`, {
-    method: 'PATCH',
-    headers: { ...headers(true), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...toRow(d), updated_at: new Date().toISOString() }),
+async function fetchCampaigns(): Promise<CampaignEvent[]> {
+  const token = getAccessToken();
+  const res = await fetch(`/api/raw-sheet?sheet=${encodeURIComponent(CAMPAIGN_SHEET)}&_t=${Date.now()}`, {
+    cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
-  if (!res.ok) throw await dbError(res);
+  if (!res.ok) {
+    throw new Error(
+      res.status === 400
+        ? `Tab "${CAMPAIGN_SHEET}" belum terdaftar di aplikasi. Hubungi tim developer.`
+        : `Gagal memuat jadwal campaign (${res.status}).`
+    );
+  }
+  const text = await res.text();
+  if (text.trim().startsWith('<')) throw new Error('Respons tidak valid. Cek akses spreadsheet.');
+  return parseCampaignCsv(text);
 }
 
-async function deleteEvent(id: string) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/campaign_events?id=eq.${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-    headers: headers(),
-  });
-  if (!res.ok) throw await dbError(res);
-}
-
-const emptyForm = (date: string): Omit<CampaignEvent, 'id'> => ({
-  title: '',
-  platform: 'semua',
-  type: 'campaign',
-  start: date,
-  end: date,
-  status: 'rencana',
-  note: '',
-});
-
-interface CampaignCalendarProps {
-  canEdit: boolean;
-}
-
-export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) => {
+export const CampaignCalendar: React.FC = () => {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [monthIdx, setMonthIdx] = useState(today.getMonth());
   const [events, setEvents] = useState<CampaignEvent[]>([]);
+  const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [form, setForm] = useState<{ id: string | null; data: Omit<CampaignEvent, 'id'> } | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const refresh = async () => {
+  const load = async () => {
+    setLoading(true);
     try {
-      setEvents(await fetchEvents());
+      setEvents(await fetchCampaigns());
       setLoadError(null);
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Gagal memuat campaign.');
+      setLoadError(err instanceof Error ? err.message : 'Gagal memuat jadwal campaign.');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    refresh();
+    load();
   }, []);
 
   // Sel kalender Senin-first.
@@ -162,10 +147,9 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
   const eventsOn = (date: string) => events.filter((e) => e.start <= date && date <= e.end);
 
   const monthEvents = useMemo(() => {
-    const prefix = `${year}-${pad(monthIdx + 1)}`;
-    return events
-      .filter((e) => e.start.startsWith(prefix) || e.end.startsWith(prefix) || (e.start < prefix && e.end > prefix))
-      .sort((a, b) => a.start.localeCompare(b.start));
+    const first = iso(year, monthIdx, 1);
+    const last = iso(year, monthIdx, new Date(year, monthIdx + 1, 0).getDate());
+    return events.filter((e) => e.start <= last && e.end >= first);
   }, [events, year, monthIdx]);
 
   const shiftMonth = (delta: number) => {
@@ -182,50 +166,8 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
     setSelected(iso(t.getFullYear(), t.getMonth(), t.getDate()));
   };
 
-  const openNew = (date: string) => {
-    setError(null);
-    setForm({ id: null, data: emptyForm(date) });
-  };
-
-  const openEdit = (e: CampaignEvent) => {
-    setError(null);
-    const { id, ...data } = e;
-    setForm({ id, data });
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form) return;
-    const { id, data } = form;
-    if (!data.title.trim()) return setError('Nama campaign wajib diisi.');
-    if (data.end < data.start) return setError('Tanggal selesai tidak boleh sebelum tanggal mulai.');
-    const clean = { ...data, title: data.title.trim(), note: data.note.trim() };
-    setBusy(true);
-    setError(null);
-    try {
-      if (id) await updateEvent(id, clean);
-      else await insertEvent(clean);
-      setForm(null);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal menyimpan.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const remove = async (id: string) => {
-    if (!window.confirm('Hapus campaign ini?')) return;
-    try {
-      await deleteEvent(id);
-      await refresh();
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Gagal menghapus.');
-    }
-  };
-
-  const selectedEvents = selected ? eventsOn(selected) : [];
   const todayIso = iso(today.getFullYear(), today.getMonth(), today.getDate());
+  const selectedEvents = selected ? eventsOn(selected) : [];
 
   return (
     <div className="dl-stack">
@@ -233,13 +175,9 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
         <div className="dl-head" style={{ justifyContent: 'space-between' }}>
           <div>
             <h3 className="dl-h">Kalender Campaign &amp; Promo Live</h3>
-            <p className="dl-sub">
-              {canEdit
-                ? 'Klik tanggal untuk melihat atau menambah campaign. Klik campaign untuk mengubah.'
-                : 'Tampilan hanya lihat. Hubungi Owner atau Admin untuk mengubah jadwal.'}
-            </p>
+            <p className="dl-sub">Jadwal dibaca dari tab {CAMPAIGN_SHEET}. Untuk menambah atau mengubah, edit langsung di spreadsheet.</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className="dl-btn" onClick={() => shiftMonth(-1)} aria-label="Bulan sebelumnya">
               <ChevronLeft className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -250,12 +188,13 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
               <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
             <button type="button" className="dl-btn" onClick={goToday}>Hari ini</button>
-            {canEdit && (
-              <button type="button" className="sh-btn sh-btn-solid" onClick={() => openNew(selected ?? todayIso)}>
-                <Plus className="w-3.5 h-3.5" aria-hidden="true" />
-                Campaign baru
-              </button>
-            )}
+            <button type="button" className="dl-btn" onClick={load} disabled={loading} aria-label="Muat ulang jadwal">
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            </button>
+            <a href={SHEET_EDIT_URL} target="_blank" rel="noreferrer" className="sh-btn sh-btn-solid" style={{ textDecoration: 'none' }}>
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              Buka spreadsheet
+            </a>
           </div>
         </div>
 
@@ -325,7 +264,7 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
                         borderRadius: 6,
                         marginBottom: 3,
                         background: PLATFORM_COLOR[e.platform],
-                        color: e.platform === 'semua' ? '#111' : '#111',
+                        color: '#111',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -359,85 +298,19 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
           <div className="dl-body dl-stack-tight">
             {selectedEvents.length === 0 && <p className="dl-muted">Belum ada campaign pada tanggal ini.</p>}
             {selectedEvents.map((e) => (
-              <div
-                key={e.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  padding: 12,
-                  borderRadius: 12,
-                  border: '1px solid #262626',
-                  background: '#1a1a1a',
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span className="dl-dot" style={{ background: PLATFORM_COLOR[e.platform], margin: 0 }} />
-                    {e.title}
-                  </div>
-                  <div className="dl-muted" style={{ marginTop: 4 }}>
-                    {PLATFORM_LABEL[e.platform]} · {TYPE_LABEL[e.type]} · {STATUS_LABEL[e.status]} · {e.start}
-                    {e.end !== e.start ? ` s/d ${e.end}` : ''}
-                  </div>
-                  {e.note && <div className="dl-muted" style={{ marginTop: 4 }}>{e.note}</div>}
+              <div key={e.id} style={{ padding: 12, borderRadius: 12, border: '1px solid #262626', background: '#1a1a1a' }}>
+                <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="dl-dot" style={{ background: PLATFORM_COLOR[e.platform], margin: 0 }} />
+                  {e.title}
                 </div>
-                {canEdit && (
-                  <div style={{ display: 'flex', gap: 6, flex: 'none' }}>
-                    <button type="button" className="dl-btn" onClick={() => openEdit(e)} aria-label={`Ubah ${e.title}`}>
-                      <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
-                    </button>
-                    <button type="button" className="dl-btn" onClick={() => remove(e.id)} aria-label={`Hapus ${e.title}`} style={{ borderColor: '#ef4444', color: '#f87171' }}>
-                      <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
-                    </button>
-                  </div>
-                )}
+                <div className="dl-muted" style={{ marginTop: 4 }}>
+                  {PLATFORM_LABEL[e.platform]} · {TYPE_LABEL[e.type]} · {STATUS_LABEL[e.status]} · {e.start}
+                  {e.end !== e.start ? ` s/d ${e.end}` : ''}
+                </div>
+                {e.note && <div className="dl-muted" style={{ marginTop: 4 }}>{e.note}</div>}
               </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {form && canEdit && (
-        <section className="dl-card">
-          <div className="dl-head">
-            <h3 className="dl-h">{form.id ? 'Ubah campaign' : 'Campaign baru'}</h3>
-          </div>
-          <form onSubmit={submit} className="dl-body" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            <Field label="Nama campaign" wide>
-              <input className="dl-field" style={{ width: '100%' }} value={form.data.title} onChange={(e) => setForm({ ...form, data: { ...form.data, title: e.target.value } })} />
-            </Field>
-            <Field label="Marketplace">
-              <select className="dl-field" style={{ width: '100%' }} value={form.data.platform} onChange={(e) => setForm({ ...form, data: { ...form.data, platform: e.target.value as Platform } })}>
-                {(Object.keys(PLATFORM_LABEL) as Platform[]).map((p) => <option key={p} value={p}>{PLATFORM_LABEL[p]}</option>)}
-              </select>
-            </Field>
-            <Field label="Jenis">
-              <select className="dl-field" style={{ width: '100%' }} value={form.data.type} onChange={(e) => setForm({ ...form, data: { ...form.data, type: e.target.value as EventType } })}>
-                {(Object.keys(TYPE_LABEL) as EventType[]).map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
-              </select>
-            </Field>
-            <Field label="Tanggal mulai">
-              <input type="date" className="dl-field" style={{ width: '100%' }} value={form.data.start} onChange={(e) => setForm({ ...form, data: { ...form.data, start: e.target.value, end: form.data.end < e.target.value ? e.target.value : form.data.end } })} />
-            </Field>
-            <Field label="Tanggal selesai">
-              <input type="date" className="dl-field" style={{ width: '100%' }} value={form.data.end} onChange={(e) => setForm({ ...form, data: { ...form.data, end: e.target.value } })} />
-            </Field>
-            <Field label="Status">
-              <select className="dl-field" style={{ width: '100%' }} value={form.data.status} onChange={(e) => setForm({ ...form, data: { ...form.data, status: e.target.value as EventStatus } })}>
-                {(Object.keys(STATUS_LABEL) as EventStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
-              </select>
-            </Field>
-            <Field label="Catatan" wide>
-              <textarea className="dl-field" style={{ width: '100%', minHeight: 70 }} value={form.data.note} onChange={(e) => setForm({ ...form, data: { ...form.data, note: e.target.value } })} />
-            </Field>
-            {error && <div className="dl-tag bad" style={{ gridColumn: '1 / -1', borderRadius: 10, padding: '8px 12px' }}>{error}</div>}
-            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
-              <button type="submit" className="sh-btn sh-btn-solid" disabled={busy}>{busy ? 'Menyimpan...' : 'Simpan'}</button>
-              <button type="button" className="sh-btn sh-btn-outline" onClick={() => setForm(null)}>Batal</button>
-            </div>
-          </form>
         </section>
       )}
 
@@ -471,7 +344,9 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
               ))}
               {monthEvents.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', color: '#737373', padding: 24 }}>Belum ada campaign di bulan ini.</td>
+                  <td colSpan={5} style={{ textAlign: 'center', color: '#737373', padding: 24 }}>
+                    {loading ? 'Memuat...' : 'Belum ada campaign di bulan ini.'}
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -481,10 +356,3 @@ export const CampaignCalendar: React.FC<CampaignCalendarProps> = ({ canEdit }) =
     </div>
   );
 };
-
-const Field: React.FC<{ label: string; wide?: boolean; children: React.ReactNode }> = ({ label, wide, children }) => (
-  <label style={wide ? { gridColumn: '1 / -1' } : undefined}>
-    <span className="dl-lbl" style={{ display: 'block', marginBottom: 6 }}>{label}</span>
-    {children}
-  </label>
-);
