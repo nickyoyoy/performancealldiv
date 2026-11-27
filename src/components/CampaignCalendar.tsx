@@ -44,8 +44,16 @@ function parseDate(raw: string | undefined): string | null {
   if (!t) return null;
   const isoM = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
   if (isoM) return `${isoM[1]}-${pad(Number(isoM[2]))}-${pad(Number(isoM[3]))}`;
-  const dmy = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (dmy) return `${dmy[3]}-${pad(Number(dmy[2]))}-${pad(Number(dmy[1]))}`;
+  // Google Sheets mengekspor sesuai locale sheet: bisa DD/MM/YYYY atau MM/DD/YYYY.
+  // Jika salah satu bagian > 12 pasti itu hari; jika ambigu, pakai MM/DD (locale sheet ini).
+  const slash = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slash) {
+    const x = Number(slash[1]);
+    const y = Number(slash[2]);
+    const [month, day] = x > 12 ? [y, x] : [x, y];
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    return `${slash[3]}-${pad(month)}-${pad(day)}`;
+  }
   return null;
 }
 
